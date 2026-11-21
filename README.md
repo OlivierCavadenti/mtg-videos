@@ -10,6 +10,12 @@ reviews). Any other video goes by its publication date.
 
 The archive starts on 1 January 2025 and is updated every day from the creators' feeds.
 
+A second page, <https://oliviercavadenti.github.io/mtg-videos/day/>, shows the videos of one day,
+midnight to midnight in the reader's time zone, by format and set, with a link per day
+(`day/?d=2026-11-20`). Early in the day, when little is out yet, yesterday follows in full. The
+**video of the day** is the one with the most views against its creator's usual, when it has at
+least half again as many.
+
 ## How it works
 
 No server and no database. Everything is static files in this repository:
@@ -39,6 +45,7 @@ npm run sync         # read every feed and add the new videos
 npm run sets         # refresh data/sets.json from Scryfall
 npm run cards        # refresh data/cards.json from Scryfall
 npm run reclassify   # apply the classification rules again (after editing them)
+YOUTUBE_API_KEY=… npm run views      # read the views of videos a day old
 YOUTUBE_API_KEY=… npm run backfill   # whole history back to historyStart
 ```
 
@@ -82,6 +89,14 @@ Cards heard in a transcript come with the second they come up at: the page links
 moment of the video. They were imported from ManaRadar, which transcribes recent videos with
 faster-whisper and finds the cards of the sets it reviews. Transcripts themselves are not stored
 here.
+
+## Views and the video of the day
+
+`npm run views` reads the YouTube views of each video once, the day after its release (the first
+run read every older video). Reading them once keeps the data files from changing every day. A
+video's score is its views divided by the median of its creator's other videos read at the same
+stage: the 30 read the day after release before it, or, for older videos, those published within
+two months around it. The daily Action reads them with the `YOUTUBE_API_KEY` secret.
 
 ## Adding a creator
 

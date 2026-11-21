@@ -38,6 +38,7 @@ jobs:
           npm run sets || echo "Scryfall unavailable: the sets stay as they were"
           npm run cards || echo "Scryfall unavailable: the cards stay as they were"
           npm run sync
+          npm run views
 
       - name: Commit the new videos
         if: github.event_name != 'push'

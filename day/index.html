@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Magic videos of the day</title>
+    <meta name="description" content="Every Magic: The Gathering creator video and podcast episode of the day, by format and set." />
+    <meta property="og:title" content="Magic videos of the day" />
+    <meta property="og:description" content="Every Magic: The Gathering creator video and podcast episode of the day, by format and set." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%231d1a16'/%3E%3Cpath d='M12 9v14l11-7z' fill='%23f6f1e7'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap"
+    />
+  </head>
+  <body class="day-page">
+    <header class="masthead">
+      <h1><a href="../">MTG Videos</a></h1>
+      <p class="dek" id="dek">Every video and podcast episode of the day, by format and set.</p>
+      <nav class="sections" aria-label="Pages"><a href="../">Archive</a> <span aria-current="page">Videos of the day</span></nav>
+    </header>
+    <nav class="daynav" id="daynav" aria-label="Days"></nav>
+    <main id="main" class="day-main" tabindex="-1">
+      <p class="status">Loading the archive…</p>
+    </main>
+    <footer class="colophon">
+      <p>
+        Videos and episodes belong to their creators; this page only links to them. Thumbnails come from YouTube, set symbols from
+        <a href="https://scryfall.com">Scryfall</a>. The video of the day is the one with the most views against its creator's usual, read through the
+        YouTube Data API. <a href="https://github.com/OlivierCavadenti/mtg-videos">Source and data on GitHub</a>.
+      </p>
+      <p>Not affiliated with Wizards of the Coast. Magic: The Gathering is a trademark of Wizards of the Coast LLC.</p>
+    </footer>
+    <script type="module" src="/src/day.ts"></script>
+  </body>
+</html>

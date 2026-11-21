@@ -87,6 +87,40 @@ function eraOf(v: Video): number {
   return at;
 }
 
+// How a video's views compare with its creator's usual: the median of their other videos read at
+// the same stage. Read the day after release: the 30 read that way before it. Read later (older
+// videos, read once at import): those published within two months around it.
+const DAY_AFTER_HOURS = 72;
+const median = (xs: number[]) => {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
+};
+const scores = new Map<Video, number>();
+const measured = new Map<string, Video[]>();
+for (const v of videos) {
+  if (!v.views) continue;
+  const list = measured.get(v.creator);
+  if (list) list.push(v);
+  else measured.set(v.creator, [v]);
+}
+for (const list of measured.values()) {
+  list.sort((a, b) => a.published.localeCompare(b.published));
+  list.forEach((v, i) => {
+    const fresh = v.views!.hours < DAY_AFTER_HOURS;
+    const t = Date.parse(v.published);
+    const peers = fresh
+      ? list
+          .slice(0, i)
+          .filter((o) => o.views!.hours < DAY_AFTER_HOURS)
+          .slice(-30)
+      : list.filter((o) => o !== v && o.views!.hours >= DAY_AFTER_HOURS && Math.abs(Date.parse(o.published) - t) <= 60 * DAY);
+    if (peers.length < 5) return;
+    const usual = median(peers.map((o) => o.views!.n));
+    if (usual > 0) scores.set(v, Math.round((v.views!.n / usual) * 10) / 10);
+  });
+}
+
 const creatorList = config.creators.filter((c) => videos.some((v) => v.creator === c.id));
 const creatorIndex = new Map(creatorList.map((c, i) => [c.id, i]));
 const order = eras.length - 1;
@@ -97,7 +131,7 @@ const out: ArchiveVideo[] = videos.map((v) => {
     id: v.id,
     c: creatorIndex.get(v.creator)!,
     title: v.title,
-    date: v.published.slice(0, 10),
+    at: v.published.replace(/\.\d{3}Z$/, "Z"),
     format,
     kind: v.kind,
     // Newest first in the file.
@@ -115,6 +149,12 @@ const out: ArchiveVideo[] = videos.map((v) => {
   if (v.summary) a.summary = v.summary;
   const podcast = podcastOf.get(v);
   if (podcast) a.podcast = podcast;
+  if (v.views) {
+    a.views = v.views.n;
+    const score = scores.get(v);
+    if (score !== undefined) a.score = score;
+    if (v.views.hours < DAY_AFTER_HOURS) a.dayAfter = true;
+  }
   return a;
 });
 

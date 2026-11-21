@@ -1,14 +1,31 @@
 import "./styles.css";
-import { FORMAT_NAMES, FORMATS, KIND_NAMES, KINDS, type Archive, type ArchiveVideo, type Format, type Kind, type Language } from "../shared/model.ts";
+import { FORMAT_NAMES, KIND_NAMES, KINDS, type Kind, type Language } from "../shared/model.ts";
+import {
+  card,
+  COLOR_NAMES,
+  COLORS,
+  dayMonth,
+  el,
+  esc,
+  fold,
+  FORMAT_ORDER,
+  groupByFormat,
+  loadArchive,
+  longDate,
+  monthYear,
+  number,
+  pip,
+  plural,
+  utc,
+  type FormatKey,
+  type Item,
+  type Loaded,
+} from "./common.ts";
 
 /**
- * One page: the archive's videos, newest period first. In each period, one group per format;
- * Limited and Cube are split again by the set the videos are about. Filters live in the URL.
+ * The archive: every video, newest period first. In each period, one group per format; Limited
+ * and Cube are split again by the set the videos are about. Filters live in the URL.
  */
-
-type FormatKey = Format | "other";
-const FORMAT_ORDER: readonly FormatKey[] = [...FORMATS, "other"];
-const SPLIT_BY_SET: ReadonlySet<FormatKey> = new Set(["limited", "cube"]);
 
 interface Filters {
   format?: FormatKey;
@@ -21,43 +38,8 @@ interface Filters {
   q?: string;
 }
 type FilterKey = keyof Filters;
-const COLORS = ["W", "U", "B", "R", "G"] as const;
-const COLOR_NAMES: Record<string, string> = { W: "White", U: "Blue", B: "Black", R: "Red", G: "Green" };
-const pip = (c: string, size = 14) => `<img class="pip" src="https://svgs.scryfall.io/card-symbols/${c}.svg" alt="${COLOR_NAMES[c]}" title="${COLOR_NAMES[c]}" width="${size}" height="${size}" />`;
 
-interface Item extends ArchiveVideo {
-  creatorName: string;
-  language: Language;
-  href: string;
-  haystack: string;
-}
-
-const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ESCAPES[c]!);
-const number = new Intl.NumberFormat("en-GB");
-const utc = (iso: string) => new Date(`${iso}T00:00:00Z`);
-const shortDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-const longDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-const dayMonth = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", timeZone: "UTC" });
-const monthYear = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
-const fold = (s: string) =>
-  s
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
-const plural = (n: number, one: string, many = `${one}s`) => `${number.format(n)} ${n === 1 ? one : many}`;
-
-function duration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
-}
-
-let archive: Archive;
-let items: Item[] = [];
-let setByCode = new Map<string, Archive["sets"][number]>();
+let data: Loaded;
 let filters: Filters = {};
 const expanded = new Set<string>();
 
@@ -69,11 +51,11 @@ function readFilters(): Filters {
   const format = p.get("format");
   if (format && (FORMAT_ORDER as readonly string[]).includes(format)) f.format = format as FormatKey;
   const set = p.get("set")?.toUpperCase();
-  if (set && setByCode.has(set)) f.set = set;
+  if (set && data.setByCode.has(set)) f.set = set;
   const kind = p.get("kind");
   if (kind && (KINDS as readonly string[]).includes(kind)) f.kind = kind as Kind;
   const creator = p.get("creator");
-  if (creator && archive.creators.some((c) => c.id === creator)) f.creator = creator;
+  if (creator && data.archive.creators.some((c) => c.id === creator)) f.creator = creator;
   const colors = (p.get("colors") ?? "").toUpperCase();
   const picked = COLORS.filter((c) => colors.includes(c)).join("");
   if (picked) f.colors = picked;
@@ -95,7 +77,7 @@ function matches(v: Item, skip?: FilterKey): boolean {
   if (filters.format && skip !== "format" && v.format !== filters.format) return false;
   if (filters.set && skip !== "set" && v.set !== filters.set) return false;
   if (filters.kind && skip !== "kind" && v.kind !== filters.kind) return false;
-  if (filters.creator && skip !== "creator" && archive.creators[v.c]!.id !== filters.creator) return false;
+  if (filters.creator && skip !== "creator" && data.archive.creators[v.c]!.id !== filters.creator) return false;
   if (filters.lang && skip !== "lang" && v.language !== filters.lang) return false;
   if (filters.colors && skip !== "colors") {
     for (const c of filters.colors) if (!v.colors?.includes(c)) return false;
@@ -108,7 +90,7 @@ function matches(v: Item, skip?: FilterKey): boolean {
 
 function countBy<K>(skip: FilterKey, key: (v: Item) => K | undefined): Map<K, number> {
   const counts = new Map<K, number>();
-  for (const v of items) {
+  for (const v of data.items) {
     if (!matches(v, skip)) continue;
     const k = key(v);
     if (k !== undefined) counts.set(k, (counts.get(k) ?? 0) + 1);
@@ -133,6 +115,7 @@ function option(value: string, label: string, selected: boolean, n?: number) {
 }
 
 function renderFilterBar() {
+  const { archive, items } = data;
   const bar = el<HTMLDivElement>("filters");
   if (!bar.dataset.ready) {
     bar.innerHTML = `
@@ -230,6 +213,7 @@ function renderFilterBar() {
 // ---------------------------------------------------------------- timeline and periods
 
 function eraTitle(index: number): { name: string; icon: string; dates: string } {
+  const { archive, setByCode } = data;
   const era = archive.eras[index]!;
   const set = setByCode.get(era.set);
   const today = archive.generated.slice(0, 10);
@@ -245,6 +229,7 @@ function eraTitle(index: number): { name: string; icon: string; dates: string } 
 }
 
 function renderTimeline(perEra: Map<number, number>) {
+  const { archive } = data;
   const years = new Map<string, number[]>();
   archive.eras.forEach((era, i) => {
     const y = era.start.slice(0, 4);
@@ -268,41 +253,6 @@ function renderTimeline(perEra: Map<number, number>) {
   el("timeline").innerHTML = `<p class="timeline-title">Periods</p><ol>${html}</ol>`;
 }
 
-function card(v: Item): string {
-  const creator = archive.creators[v.c]!;
-  const thumb =
-    v.url === undefined
-      ? `<img src="https://i.ytimg.com/vi/${esc(v.id)}/mqdefault.jpg" alt="" width="320" height="180" loading="lazy" decoding="async" />`
-      : `<span class="tile" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 3a4 4 0 0 0-4 4v5a4 4 0 0 0 8 0V7a4 4 0 0 0-4-4Zm-7 9a1 1 0 1 1 2 0 5 5 0 0 0 10 0 1 1 0 1 1 2 0 7 7 0 0 1-6 6.93V21h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-2.07A7 7 0 0 1 5 12Z"/></svg><span>${esc(creator.name)}</span></span>`;
-  const set = v.set ? setByCode.get(v.set) : undefined;
-  const tags = [
-    KIND_NAMES[v.kind] !== "Other" ? esc(KIND_NAMES[v.kind]) : "",
-    set ? `<abbr title="${esc(set.name)}${v.setGuessed ? " (from the date)" : ""}">${esc(set.code)}</abbr>` : "",
-    ...(v.also ?? []).map((f) => esc(FORMAT_NAMES[f])),
-    ...(v.archetypes ?? []).map((a) => `<span class="arch">${esc(a)}</span>`),
-  ].filter(Boolean);
-  const pips = v.colors ? `<span class="pips">${[...v.colors].map((c) => pip(c)).join("")}</span> ` : "";
-  // Cards heard in the transcript: each opens the video where it comes up.
-  const heard = (v.cards ?? []).filter((c): c is [string, number] => c[1] !== undefined);
-  const cards = heard.length
-    ? `<details class="heard"><summary>${plural(heard.length, "card")} discussed</summary><p>${heard
-        .map(([name, at]) =>
-          v.url === undefined
-            ? `<a href="https://www.youtube.com/watch?v=${esc(v.id)}&amp;t=${at}s" target="_blank" rel="noopener">${esc(name)}</a> <span class="at">${duration(at)}</span>`
-            : `${esc(name)} <span class="at">${duration(at)}</span>`,
-        )
-        .join(" · ")}</p></details>`
-    : "";
-  return `<article class="card">
-    <a class="thumb" href="${esc(v.href)}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">${thumb}${v.duration ? `<span class="len">${duration(v.duration)}</span>` : ""}</a>
-    <p class="by"><button type="button" data-creator="${esc(creator.id)}">${esc(creator.name)}</button>${creator.language === "fr" ? ` <span class="lang">FR</span>` : ""}, <time datetime="${v.date}">${shortDate.format(utc(v.date))}</time></p>
-    <h4><a href="${esc(v.href)}" target="_blank" rel="noopener"${v.summary ? ` title="${esc(v.summary)}"` : ""}>${esc(v.title)}</a></h4>
-    ${tags.length || pips ? `<p class="tags">${pips}${tags.join(" · ")}</p>` : ""}
-    ${cards}
-    ${v.podcast ? `<p class="alt">Also as a <a href="${esc(v.podcast)}" target="_blank" rel="noopener">podcast episode</a></p>` : ""}
-  </article>`;
-}
-
 /** Cards in one row of the grid at the current width (210px columns, 16px gaps). */
 function perRow(): number {
   const width = el("main").clientWidth || 900;
@@ -315,10 +265,11 @@ function grid(list: Item[], key: string): string {
   const open = expanded.has(key) || list.length <= limit + 2;
   const shown = open ? list : list.slice(0, limit);
   const more = list.length > shown.length ? `<button type="button" class="more" data-expand="${esc(key)}">Show all ${number.format(list.length)}</button>` : "";
-  return `<div class="grid">${shown.map(card).join("")}</div>${more}`;
+  return `<div class="grid">${shown.map((v) => card(v, data)).join("")}</div>${more}`;
 }
 
 function renderMain(visible: Item[]) {
+  const { archive, setByCode } = data;
   const main = el<HTMLElement>("main");
   if (!visible.length) {
     main.innerHTML = `<p class="status">No video matches these filters. <button type="button" data-clear-main>Clear filters</button></p>`;
@@ -334,45 +285,28 @@ function renderMain(visible: Item[]) {
   for (const [era, list] of [...byEra].sort((a, b) => a[0] - b[0])) {
     const code = archive.eras[era]!.set;
     const { name, icon, dates } = eraTitle(era);
-    const byFormat = new Map<FormatKey, Item[]>();
-    for (const v of list) {
-      const l = byFormat.get(v.format);
-      if (l) l.push(v);
-      else byFormat.set(v.format, [v]);
-    }
-    const formats = FORMAT_ORDER.filter((f) => byFormat.has(f));
-    const index = formats.length > 1 ? `<p class="era-index">${formats.map((f) => `<a href="#era-${code}-${f}">${esc(FORMAT_NAMES[f])}</a> ${number.format(byFormat.get(f)!.length)}`).join(" · ")}</p>` : "";
-    const groups = formats.map((f) => {
-      const fl = byFormat.get(f)!;
-      let body: string;
-      if (SPLIT_BY_SET.has(f) && !filters.set) {
-        const bySet = new Map<string, Item[]>();
-        for (const v of fl) {
-          const k = v.set ?? "";
-          const l = bySet.get(k);
-          if (l) l.push(v);
-          else bySet.set(k, [v]);
-        }
-        // The period's own set first, then the most covered; videos naming no set last.
-        const keys = [...bySet.keys()].sort((a, b) => Number(b === code) - Number(a === code) || Number(a === "") - Number(b === "") || bySet.get(b)!.length - bySet.get(a)!.length);
-        body = keys
-          .map((k) => {
-            const set = k ? setByCode.get(k) : undefined;
-            const label = set
-              ? `<button type="button" class="set-link" data-set="${esc(set.code)}" title="Only ${esc(set.name)}"><img src="${esc(set.icon)}" alt="" width="18" height="18" loading="lazy" />${esc(set.name)}</button>`
-              : `<span>No set named</span>`;
-            return `<section class="subgroup"><h4 class="subhead">${label} <span class="n">${number.format(bySet.get(k)!.length)}</span></h4>${grid(bySet.get(k)!, `${era}|${f}|${k}`)}</section>`;
-          })
-          .join("");
-      } else body = grid(fl, `${era}|${f}`);
-      return `<section class="group" id="era-${code}-${f}"><h3>${esc(FORMAT_NAMES[f])} <span class="n">${number.format(fl.length)}</span></h3>${body}</section>`;
+    const groups = groupByFormat(list, code, !filters.set);
+    const index = groups.length > 1 ? `<p class="era-index">${groups.map((g) => `<a href="#era-${code}-${g.format}">${esc(FORMAT_NAMES[g.format])}</a> ${number.format(g.items.length)}`).join(" · ")}</p>` : "";
+    const body = groups.map((g) => {
+      const inner = g.bySet
+        ? g.bySet
+            .map(({ code: k, items: l }) => {
+              const set = k ? setByCode.get(k) : undefined;
+              const label = set
+                ? `<button type="button" class="set-link" data-set="${esc(set.code)}" title="Only ${esc(set.name)}"><img src="${esc(set.icon)}" alt="" width="18" height="18" loading="lazy" />${esc(set.name)}</button>`
+                : `<span>No set named</span>`;
+              return `<section class="subgroup"><h4 class="subhead">${label} <span class="n">${number.format(l.length)}</span></h4>${grid(l, `${era}|${g.format}|${k}`)}</section>`;
+            })
+            .join("")
+        : grid(g.items, `${era}|${g.format}`);
+      return `<section class="group" id="era-${code}-${g.format}"><h3>${esc(FORMAT_NAMES[g.format])} <span class="n">${number.format(g.items.length)}</span></h3>${inner}</section>`;
     });
     sections.push(`<section class="era" id="era-${code}" data-era="${code}">
       <header class="era-head">
         ${icon ? `<img class="symbol" src="${esc(icon)}" alt="" width="36" height="36" />` : ""}
         <div><h2>${esc(name)}</h2><p class="dates">${dates} · ${plural(list.length, "video")}</p>${index}</div>
       </header>
-      ${groups.join("")}
+      ${body.join("")}
     </section>`);
   }
   main.innerHTML = sections.join("");
@@ -401,7 +335,7 @@ function spy() {
 function update() {
   writeFilters();
   renderFilterBar();
-  const visible = items.filter((v) => matches(v));
+  const visible = data.items.filter((v) => matches(v));
   const perEra = new Map<number, number>();
   for (const v of visible) perEra.set(v.era, (perEra.get(v.era) ?? 0) + 1);
   renderTimeline(perEra);
@@ -415,9 +349,9 @@ el("main").addEventListener("click", (e) => {
     const key = more.dataset.expand!;
     expanded.add(key);
     const [era, format, set] = key.split("|") as [string, FormatKey, string | undefined];
-    const list = items.filter((v) => matches(v) && v.era === Number(era) && v.format === format && (set === undefined || (v.set ?? "") === set));
+    const list = data.items.filter((v) => matches(v) && v.era === Number(era) && v.format === format && (set === undefined || (v.set ?? "") === set));
     const gridEl = more.previousElementSibling;
-    if (gridEl) gridEl.innerHTML = list.map(card).join("");
+    if (gridEl) gridEl.innerHTML = list.map((v) => card(v, data)).join("");
     more.remove();
     return;
   }
@@ -432,22 +366,9 @@ el("main").addEventListener("click", (e) => {
 });
 
 async function start() {
-  const res = await fetch(`${import.meta.env.BASE_URL}archive.json`);
-  if (!res.ok) throw new Error(`archive.json: HTTP ${res.status}`);
-  archive = (await res.json()) as Archive;
-  setByCode = new Map(archive.sets.map((s) => [s.code, s]));
-  items = archive.videos.map((v) => {
-    const creator = archive.creators[v.c]!;
-    const set = v.set ? setByCode.get(v.set) : undefined;
-    return {
-      ...v,
-      creatorName: creator.name,
-      language: creator.language,
-      href: v.url ?? `https://www.youtube.com/watch?v=${v.id}`,
-      haystack: fold([v.title, creator.name, set?.name ?? "", v.set ?? "", ...(v.archetypes ?? []), ...(v.cards ?? []).map((c) => c[0])].join(" ")),
-    };
-  });
-  const updated = shortDate.format(new Date(archive.generated));
+  data = await loadArchive();
+  const { archive, items } = data;
+  const updated = longDate.format(utc(archive.generated.slice(0, 10)));
   el("dek").textContent = `${number.format(items.length)} videos and podcasts from ${archive.creators.length} Magic creators since ${monthYear.format(utc(archive.since))}, by period, format and set. Updated ${updated}.`;
   filters = readFilters();
   update();

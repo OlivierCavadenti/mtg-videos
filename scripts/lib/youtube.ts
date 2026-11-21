@@ -33,6 +33,17 @@ interface PlaylistItems {
   }>;
 }
 
+/** View counts of videos (50 per request); a deleted or private video is missing from the result. */
+export async function viewCounts(ids: string[], key: string): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  for (let i = 0; i < ids.length; i += 50) {
+    const query = new URLSearchParams({ part: "statistics", id: ids.slice(i, i + 50).join(","), key });
+    const data = await getJson<{ items: Array<{ id: string; statistics: { viewCount?: string } }> }>(`${API}/videos?${query}`);
+    for (const v of data.items) if (v.statistics.viewCount !== undefined) out.set(v.id, Number(v.statistics.viewCount));
+  }
+  return out;
+}
+
 interface Videos {
   items: Array<{ id: string; snippet: { liveBroadcastContent: string }; contentDetails: { duration?: string } }>;
 }

@@ -128,6 +128,8 @@ export interface Video {
   cards?: CardMention[];
   /** One sentence, written by the classifier (never the creator's text). */
   summary?: string;
+  /** YouTube views, read once: the day after release for new videos, at import for older ones. */
+  views?: { n: number; hours: number };
   /** "llm" (classified by a language model on ManaRadar) or "rules" (scripts/lib/classify.ts). */
   by: "llm" | "rules";
 }
@@ -180,8 +182,8 @@ export interface ArchiveVideo {
   title: string;
   /** Podcast episodes only: the episode page. */
   url?: string;
-  /** YYYY-MM-DD. */
-  date: string;
+  /** Publication, ISO date-time (UTC, to the second): the page shows it in the reader's time zone. */
+  at: string;
   duration?: number;
   /** Primary format, "other" when none. */
   format: Format | "other";
@@ -200,4 +202,9 @@ export interface ArchiveVideo {
   summary?: string;
   /** The same episode as a podcast. */
   podcast?: string;
+  /** Views, and how they compare with the creator's usual (2 = twice as many as their median). */
+  views?: number;
+  score?: number;
+  /** Views read the day after release, compared with the creator's other videos read then. */
+  dayAfter?: true;
 }
