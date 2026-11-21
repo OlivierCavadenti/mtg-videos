@@ -127,13 +127,15 @@ function renderFilterBar() {
     bar.innerHTML = `
       <div class="formats" role="group" aria-label="Format"></div>
       <div class="refine">
-        <label><span>Kind</span><select data-filter="kind"></select></label>
-        <label><span>Set</span><select data-filter="set"></select></label>
-        <label><span>Creator</span><select data-filter="creator"></select></label>
-        <label><span>Language</span><select data-filter="lang"></select></label>
-        <label class="search"><span>Search</span><input type="search" data-filter="q" placeholder="Title, archetype, creator" autocomplete="off" /></label>
-      </div>
-      <p class="summary" aria-live="polite"></p>`;
+        <label><span class="sr-only">Kind</span><select data-filter="kind"></select></label>
+        <label><span class="sr-only">Set</span><select data-filter="set"></select></label>
+        <label><span class="sr-only">Creator</span><select data-filter="creator"></select></label>
+        <label><span class="sr-only">Language</span><select data-filter="lang"></select></label>
+        <label class="search"><span class="sr-only">Search</span><input type="search" data-filter="q" placeholder="Search titles, archetypes, creators" autocomplete="off" /></label>
+        <p class="summary" aria-live="polite"></p>
+      </div>`;
+    // The periods' sticky offsets follow the height of this bar.
+    new ResizeObserver(() => document.documentElement.style.setProperty("--sticky", `${bar.offsetHeight}px`)).observe(bar);
     bar.dataset.ready = "1";
     bar.hidden = false;
     let timer = 0;
@@ -200,7 +202,9 @@ function renderFilterBar() {
   if (document.activeElement !== search) search.value = filters.q ?? "";
 
   const shown = items.filter((v) => matches(v)).length;
-  bar.querySelector(".summary")!.innerHTML = `${plural(shown, "video")}${activeCount() ? ` match these filters. <button type="button" data-clear>Clear filters</button>` : " in the archive."}`;
+  bar.querySelector(".summary")!.innerHTML = activeCount()
+    ? `${number.format(shown)} of ${plural(items.length, "video")} · <button type="button" data-clear>Clear filters</button>`
+    : plural(shown, "video");
 }
 
 // ---------------------------------------------------------------- timeline and periods
@@ -332,7 +336,7 @@ function renderMain(visible: Item[]) {
     });
     sections.push(`<section class="era" id="era-${code}" data-era="${code}">
       <header class="era-head">
-        ${icon ? `<img class="symbol" src="${esc(icon)}" alt="" width="44" height="44" />` : ""}
+        ${icon ? `<img class="symbol" src="${esc(icon)}" alt="" width="36" height="36" />` : ""}
         <div><h2>${esc(name)}</h2><p class="dates">${dates} · ${plural(list.length, "video")}</p>${index}</div>
       </header>
       ${groups.join("")}
@@ -410,8 +414,8 @@ async function start() {
       haystack: fold([v.title, creator.name, set?.name ?? "", v.set ?? "", ...(v.archetypes ?? [])].join(" ")),
     };
   });
-  const updated = longDate.format(new Date(archive.generated));
-  el("dek").textContent = `${plural(items.length, "video")} and podcast episodes from ${archive.creators.length} Magic: The Gathering creators since ${monthYear.format(utc(archive.since))}, filed by period, format and set. Updated ${updated}.`;
+  const updated = shortDate.format(new Date(archive.generated));
+  el("dek").textContent = `${number.format(items.length)} videos and podcasts from ${archive.creators.length} Magic creators since ${monthYear.format(utc(archive.since))}, by period, format and set. Updated ${updated}.`;
   filters = readFilters();
   update();
   if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
