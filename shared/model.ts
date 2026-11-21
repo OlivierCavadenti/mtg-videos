@@ -124,6 +124,8 @@ export interface Video {
   archetypes?: string[];
   /** Colors played, in WUBRG order ("UB"), from the title (guilds, "mono-red", "UW", colored emoji). */
   colors?: string;
+  /** The colors come from the cards heard in a Limited draft, not from the title. */
+  colorsFrom?: "cards";
   /** Cards named in the title, or heard in the transcript with the seconds they come up at. */
   cards?: CardMention[];
   /** One sentence, written by the classifier (never the creator's text). */
@@ -197,6 +199,8 @@ export interface ArchiveVideo {
   era: number;
   archetypes?: string[];
   colors?: string;
+  /** Colors told by the cards discussed in the draft rather than by the title. */
+  colorsHeard?: true;
   /** Cards it discusses, most discussed first: [name, seconds of the first mention] (no time when only named in the title). */
   cards?: Array<[string, number?]>;
   summary?: string;

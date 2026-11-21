@@ -147,10 +147,12 @@ interface CardPattern {
 
 export class CardIndex {
   private readonly byFirstWord = new Map<string, CardPattern[]>();
+  private readonly colors = new Map<string, string>();
 
   constructor(cards: CardInfo[], sets: Map<string, SetInfo>, setNames: Set<string>) {
     const seen = new Set<string>();
     for (const c of cards) {
+      this.colors.set(c.name, c.colors);
       const released = Date.parse(sets.get(c.set)?.released ?? "");
       if (!Number.isFinite(released)) continue;
       for (const face of c.name.split(" // ")) {
@@ -174,6 +176,10 @@ export class CardIndex {
     return new CardIndex(cards, sets, setNames);
   }
 
+  colorsOf(name: string): string | undefined {
+    return this.colors.get(name);
+  }
+
   /** Cards of the sets out within two years before the video (or due within two months) that its title names. */
   findInTitle(title: string, at: Date): string[] {
     const t = at.getTime();
@@ -193,25 +199,53 @@ export class CardIndex {
 }
 
 /**
+ * The colors of a Limited deck told by the cards heard in the video: each mono- or two-colored card
+ * weighs the times it comes up. The two leading colors must hold two thirds of the weight (a second
+ * color under a fifth is left out). Tested against drafts whose title names the colors.
+ */
+export function colorsHeard(v: Video, cards: CardIndex): string | undefined {
+  if (v.formats[0] !== "limited" || (v.kind !== "draft" && v.kind !== "sealed")) return undefined;
+  const weight: Record<string, number> = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+  for (const c of v.cards ?? []) {
+    const colors = cards.colorsOf(c.name);
+    if (!c.at?.length || !colors || colors.length > 2) continue;
+    for (const x of colors) weight[x]! += c.at.length / colors.length;
+  }
+  const total = Object.values(weight).reduce((a, b) => a + b, 0);
+  if (total < 8) return undefined;
+  const [first, second] = Object.entries(weight).sort((a, b) => b[1] - a[1]) as [[string, number], [string, number]];
+  if ((first[1] + second[1]) / total < 0.65) return undefined;
+  return sortColors(second[1] / total >= 0.2 ? first[0] + second[0] : first[0]);
+}
+
+/**
  * Colors, archetypes and title cards of a video. Cards heard in a transcript (with times) are
  * kept; a language model's archetypes are kept when it found some.
  */
-export function tag(v: Video, cards: CardIndex): Pick<Video, "colors" | "archetypes" | "cards"> {
-  const colors = colorsIn(v.title);
+export function tag(v: Video, cards: CardIndex): Pick<Video, "colors" | "colorsFrom" | "archetypes" | "cards"> {
   const archetypes = v.by === "llm" && v.archetypes?.length ? v.archetypes : archetypesIn(v.title);
+  const named = colorsIn(v.title) ?? colorsIn(archetypes.join(" | "));
+  const heardColors = named ? undefined : colorsHeard(v, cards);
+  const colors = named ?? heardColors;
   const heard = (v.cards ?? []).filter((c) => c.at?.length);
-  const named: CardMention[] = cards
+  const inTitle: CardMention[] = cards
     .findInTitle(v.title, new Date(v.published))
     .filter((n) => !heard.some((h) => h.name === n))
     .map((name) => ({ name }));
-  const all = [...named, ...heard];
-  return { ...(colors ? { colors } : {}), ...(archetypes.length ? { archetypes } : {}), ...(all.length ? { cards: all } : {}) };
+  const all = [...inTitle, ...heard];
+  return {
+    ...(colors ? { colors } : {}),
+    ...(heardColors ? { colorsFrom: "cards" as const } : {}),
+    ...(archetypes.length ? { archetypes } : {}),
+    ...(all.length ? { cards: all } : {}),
+  };
 }
 
 /** Sets the tags of a video in place, replacing what the rules found before. */
 export function applyTags(v: Video, cards: CardIndex): void {
   const tags = tag(v, cards);
   delete v.colors;
+  delete v.colorsFrom;
   delete v.cards;
   if (v.by === "rules") delete v.archetypes;
   Object.assign(v, tags);

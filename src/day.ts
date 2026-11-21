@@ -1,6 +1,6 @@
 import "./styles.css";
 import { FORMAT_NAMES } from "../shared/model.ts";
-import { duration, el, esc, fullDay, groupByFormat, loadArchive, localDay, plural, utc, type FormatGroup, type Item, type Loaded } from "./common.ts";
+import { COLOR_NAMES, duration, el, esc, fullDay, groupByFormat, loadArchive, localDay, pip, plural, utc, type FormatGroup, type Item, type Loaded } from "./common.ts";
 
 /**
  * The videos of one day, midnight to midnight in the reader's time zone, by format and set. The
@@ -65,6 +65,43 @@ function labelTile(g: FormatGroup): string {
   return `<div class="mlabel"><span class="fmt">${esc(FORMAT_NAMES[g.format])}</span><span class="n">${plural(g.items.length, "video")}</span>${sets ? `<span class="sets">${sets}</span>` : ""}</div>`;
 }
 
+const COMBINATIONS: Record<string, string> = {
+  WU: "Azorius", UB: "Dimir", BR: "Rakdos", RG: "Gruul", WG: "Selesnya", WB: "Orzhov", UR: "Izzet", BG: "Golgari", WR: "Boros", UG: "Simic",
+  WUB: "Esper", UBR: "Grixis", BRG: "Jund", WRG: "Naya", WUG: "Bant", WBG: "Abzan", WUR: "Jeskai", UBG: "Sultai", WBR: "Mardu", URG: "Temur",
+};
+const combination = (colors: string) =>
+  colors.length === 1 ? `Mono-${COLOR_NAMES[colors]!.toLowerCase()}` : (COMBINATIONS[colors] ?? (colors.length === 4 ? "Four colors" : "Five colors"));
+
+/**
+ * A format's videos by colors played: one line per color combination (most videos first), then the
+ * videos whose colors are not known. Without two videos with known colors, no grouping.
+ */
+function byColors(list: Item[], pick: Item | undefined): string {
+  const tiles = (l: Item[]) => l.map((v) => tile(v, v === pick)).join("");
+  if (list.filter((v) => v.colors).length < 2) return `<div class="mosaic">${tiles(list)}</div>`;
+  const groups = new Map<string, Item[]>();
+  for (const v of list) {
+    const k = v.colors ?? "";
+    const l = groups.get(k);
+    if (l) l.push(v);
+    else groups.set(k, [v]);
+  }
+  const keys = [...groups.keys()].sort(
+    (a, b) => Number(Boolean(pick && groups.get(b)!.includes(pick))) - Number(Boolean(pick && groups.get(a)!.includes(pick))) || Number(a === "") - Number(b === "") || groups.get(b)!.length - groups.get(a)!.length,
+  );
+  return keys
+    .map((k) => {
+      const l = groups.get(k)!.sort((a, b) => Number(b === pick) - Number(a === pick));
+      const archetypes = [...new Set(l.flatMap((v) => v.archetypes ?? []))].slice(0, 4);
+      const heardOnly = l.every((v) => v.colorsHeard);
+      const head = k
+        ? `<span class="pips">${[...k].map((c) => pip(c)).join("")}</span> <strong>${combination(k)}</strong> <span class="n">${l.length}</span>${archetypes.length ? ` <span class="archs">${archetypes.map(esc).join(", ")}</span>` : ""}${heardOnly ? ' <span class="archs" title="Colors told by the cards discussed in the video">from the cards discussed</span>' : ""}`
+        : `<strong>Colors not named</strong> <span class="n">${l.length}</span>`;
+      return `<div class="cgroup"><p class="chead">${head}</p><div class="mosaic">${tiles(l)}</div></div>`;
+    })
+    .join("");
+}
+
 function daySection(day: string, list: Item[], heading: string): string {
   if (!list.length) return `<section class="day"><h2 class="day-title">${heading}</h2><p class="status">No video on this day.</p></section>`;
   const pick = pickOfTheDay(list);
@@ -74,9 +111,9 @@ function daySection(day: string, list: Item[], heading: string): string {
   // video of the day takes a double tile in its format's block, which comes first.
   const groups = groupByFormat(list).sort((a, b) => Number(Boolean(pick && b.items.includes(pick))) - Number(Boolean(pick && a.items.includes(pick))));
   const clusters = groups.map((g) => {
-    const ordered = (g.bySet ? g.bySet.flatMap((s) => s.items) : g.items).filter((v) => v !== pick);
-    const lead = pick && g.items.includes(pick) ? tile(pick, true) : "";
-    return `<div class="cluster" data-format="${g.format}">${labelTile(g)}<div class="mosaic">${lead}${ordered.map((v) => tile(v)).join("")}</div></div>`;
+    // Sets in order (Limited, Cube), the video of the day first.
+    const ordered = (g.bySet ? g.bySet.flatMap((s) => s.items) : g.items).sort((a, b) => Number(b === pick) - Number(a === pick));
+    return `<div class="cluster" data-format="${g.format}">${labelTile(g)}<div class="cluster-body">${byColors(ordered, pick)}</div></div>`;
   });
   return `<section class="day" data-day="${day}"><h2 class="day-title">${heading} <span class="n">${counts}</span></h2>${clusters.join("")}</section>`;
 }

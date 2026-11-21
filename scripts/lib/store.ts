@@ -18,6 +18,18 @@ export function podcastId(creatorId: string, guid: string): string {
   return `p${createHash("sha1").update(`${creatorId}\n${guid}`).digest("hex").slice(0, 12)}`;
 }
 
+/** Fields in a fixed order, so that a file only changes where a video does. */
+const FIELD_ORDER: Array<keyof Video> = [
+  "id", "creator", "platform", "url", "title", "published", "duration", "hidden",
+  "formats", "kind", "set", "setFrom", "heard", "archetypes", "colors", "colorsFrom", "cards", "summary", "views", "by",
+];
+const canonical = (v: Video) => {
+  const out: Record<string, unknown> = {};
+  for (const k of FIELD_ORDER) if (v[k] !== undefined) out[k] = v[k];
+  for (const [k, value] of Object.entries(v)) if (!(k in out) && value !== undefined) out[k] = value;
+  return out;
+};
+
 /** Every stored video, keyed by "creator/id". */
 export class Store {
   private readonly videos = new Map<string, Video>();
@@ -58,7 +70,7 @@ export class Store {
     }
     for (const [year, list] of years) {
       list.sort((a, b) => b.published.localeCompare(a.published) || a.id.localeCompare(b.id));
-      writeFileSync(new URL(`${year}.json`, VIDEOS), `[\n${list.map((v) => JSON.stringify(v)).join(",\n")}\n]\n`);
+      writeFileSync(new URL(`${year}.json`, VIDEOS), `[\n${list.map((v) => JSON.stringify(canonical(v))).join(",\n")}\n]\n`);
     }
   }
 }

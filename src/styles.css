@@ -224,6 +224,53 @@ button {
   gap: 4px;
 }
 
+/* Color groups flow side by side, each its heading over its tiles. */
+.cluster-body:has(.cgroup) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 14px;
+}
+
+.cgroup {
+  max-width: 100%;
+}
+
+.cgroup .mosaic {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cgroup .mtile {
+  width: min(222px, calc(50vw - 30px));
+}
+
+.cgroup .mtile.pick {
+  width: min(448px, calc(100vw - 48px));
+  aspect-ratio: 16 / 9;
+}
+
+.chead {
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  font: 14px/1.4 var(--narrow);
+  color: var(--ink-soft);
+}
+
+.chead strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.chead .archs {
+  font: italic 13px var(--serif);
+  color: var(--ink-faint);
+}
+
 .cluster + .cluster {
   margin-top: var(--space-3);
 }
