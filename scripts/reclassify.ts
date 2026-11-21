@@ -33,7 +33,8 @@ for (const v of store.all()) {
   } else {
     const named = sets.findInTitle(v.title, new Date(v.published));
     if (named) Object.assign(next, { set: named, setFrom: "title" });
-    else if (v.setFrom === "date" || !v.set) {
+    // A set once read in the title that the rules no longer see there goes too.
+    else if (v.setFrom === "date" || v.setFrom === "title" || !v.set) {
       delete next.set;
       delete next.setFrom;
       Object.assign(next, placeSet(v.title, new Date(v.published), v.formats, v.kind, sets));

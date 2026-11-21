@@ -55,6 +55,26 @@ function namesOf(set: SetInfo, extra: string[]): string[] {
 /** Uppercase words that are set codes but mostly mean something else in a title. */
 const AMBIGUOUS_CODES = new Set(["THE", "AND", "FOR", "TOP", "NEW", "ONE", "WAR", "BIG", "ALL", "OUT", "WHO"]);
 
+const SEGMENT_BEFORE = /(^|[|\-–—:([#/])\s*$/;
+const SEGMENT_AFTER = /^\s*([|\-–—:)\]/!?.,]|$)/;
+const WORD_AFTER =
+  /^\s+(draft|drafts|drafting|sealed|prerelease|pre-release|set|review|limited|spoilers?|previews?|early access|cube|premier|quick|traditional|trad|bo[13]|p1p1|first look|commons?|uncommons?|rares?|mythics?|cards?|standard|format|arena|gameplay|league|run|trophy)\b/i;
+const WORD_BEFORE = /\b(in|of|for|from|draft|drafting|sealed|reviewing)\s+$/i;
+
+/**
+ * A code counts only where a title uses it as one: a segment of its own ("| EOE |", "#FIN"),
+ * before a Limited word ("TDM Draft") or after "in", "of"… ("Best commons in DFT"). "Ouroboroid
+ * Is a BRO" is not about The Brothers' War.
+ */
+function usedAsCode(title: string, code: string): boolean {
+  for (const m of title.matchAll(new RegExp(`\\b${code}\\b`, "g"))) {
+    const before = title.slice(0, m.index);
+    const after = title.slice(m.index + code.length);
+    if ((SEGMENT_BEFORE.test(before) && SEGMENT_AFTER.test(after)) || WORD_AFTER.test(after) || WORD_BEFORE.test(before)) return true;
+  }
+  return false;
+}
+
 interface Matcher {
   code: string;
   released: number;
@@ -97,11 +117,12 @@ export class SetIndex {
     const letters = title.replace(/[^A-Za-z]/g, "");
     const shouting = letters.length > 0 && letters.replace(/[^A-Z]/g, "").length / letters.length > 0.6;
     const codes = shouting ? new Set<string>() : new Set(title.match(/\b[A-Z0-9]{3}\b/g) ?? []);
+    const codeCutoff = at.getTime() - 2 * 365 * DAY;
     let best: { code: string; length: number; distance: number } | null = null;
     for (const m of this.around(at)) {
       let length = 0;
       for (const n of m.names) if (n.length > length && words.includes(` ${n} `)) length = n.length;
-      if (!length && codes.has(m.code) && !AMBIGUOUS_CODES.has(m.code)) length = 3;
+      if (!length && codes.has(m.code) && !AMBIGUOUS_CODES.has(m.code) && m.released >= codeCutoff && usedAsCode(title, m.code)) length = 3;
       if (!length) continue;
       const distance = SetIndex.distance(m, at);
       if (!best || length > best.length || (length === best.length && distance < best.distance)) best = { code: m.code, length, distance };

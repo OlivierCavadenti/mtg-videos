@@ -25,6 +25,9 @@ test("a set named in the title wins, nicknames included", () => {
   assert.equal(sets.findInTitle("Lorwyn Eclipsed Draft | MTG Arena", new Date("2026-02-01")), "ECL");
   assert.equal(sets.findInTitle("Tarkir Dragonstorm Draft", new Date("2025-04-20")), "TDM");
   assert.equal(sets.findInTitle("THIS DECK IS INSANE", new Date("2026-02-01")), null);
+  assert.equal(sets.findInTitle("Ouroboroid Is a BRO | Simic Midrange | Standard Bo3", new Date("2025-08-30")), null);
+  assert.equal(sets.findInTitle("Best commons in DFT | Limited", new Date("2025-03-01")), "DFT");
+  assert.equal(sets.findInTitle("Gruul Landfall | EOE | MTG Arena", new Date("2025-08-10")), "EOE");
 });
 
 test("a Limited video naming no set gets the Limited format of its day", () => {
