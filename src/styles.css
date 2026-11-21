@@ -271,8 +271,49 @@ button {
   color: var(--ink-faint);
 }
 
-.cluster + .cluster {
+.cluster + .cluster,
+.cluster + .cluster-row {
   margin-top: var(--space-3);
+}
+
+/* Formats with one or two videos side by side: each its name over its tiles. */
+.cluster-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3) 14px;
+}
+
+.cluster-row .cluster {
+  display: block;
+  max-width: 100%;
+}
+
+.cluster-row .cluster + .cluster {
+  margin-top: 0;
+}
+
+/* The name never widens its block: the tiles set the width, the name wraps under them. */
+.cluster-row .mlabel {
+  width: 0;
+  min-width: 100%;
+  flex-flow: row wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  padding: 6px 0 4px;
+}
+
+.cluster-row .mlabel .fmt {
+  font-size: 20px;
+}
+
+.cluster-row .mosaic {
+  display: flex;
+  gap: 4px;
+}
+
+.cluster-row .mtile {
+  width: min(222px, calc(50vw - 30px));
 }
 
 .mtile {

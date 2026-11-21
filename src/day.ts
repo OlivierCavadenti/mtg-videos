@@ -10,6 +10,8 @@ import { COLOR_NAMES, duration, el, esc, fullDay, groupByFormat, loadArchive, lo
 const ARCHIVE = "../";
 /** A video of the day has at least half again its creator's usual views. */
 const STANDS_OUT = 1.5;
+/** A format with this many videos or fewer shares a row with the other small ones. */
+const SMALL = 2;
 let data: Loaded;
 
 const shift = (day: string, days: number) => new Date(utc(day).getTime() + days * 86_400_000).toISOString().slice(0, 10);
@@ -108,13 +110,21 @@ function daySection(day: string, list: Item[], heading: string): string {
   const podcasts = list.filter((v) => v.url !== undefined).length;
   const counts = podcasts ? `${plural(list.length - podcasts, "video")} and ${plural(podcasts, "podcast episode")}` : plural(list.length, "video");
   // One block per format, each on its own rows: its title tile, then its videos, sets in order. The
-  // video of the day takes a double tile in its format's block, which comes first.
+  // video of the day takes a double tile in its format's block, which comes first. Formats with one
+  // or two videos share a last row, side by side, without color groups.
   const groups = groupByFormat(list).sort((a, b) => Number(Boolean(pick && b.items.includes(pick))) - Number(Boolean(pick && a.items.includes(pick))));
-  const clusters = groups.map((g) => {
+  const isSmall = (g: FormatGroup) => g.items.length <= SMALL && !(pick && g.items.includes(pick));
+  const cluster = (g: FormatGroup) => {
     // Sets in order (Limited, Cube), the video of the day first.
     const ordered = (g.bySet ? g.bySet.flatMap((s) => s.items) : g.items).sort((a, b) => Number(b === pick) - Number(a === pick));
-    return `<div class="cluster" data-format="${g.format}">${labelTile(g)}<div class="cluster-body">${byColors(ordered, pick)}</div></div>`;
-  });
+    const body = isSmall(g) ? `<div class="mosaic">${ordered.map((v) => tile(v)).join("")}</div>` : byColors(ordered, pick);
+    return `<div class="cluster" data-format="${g.format}">${labelTile(g)}<div class="cluster-body">${body}</div></div>`;
+  };
+  const small = groups.filter(isSmall);
+  const clusters = [
+    ...groups.filter((g) => !isSmall(g)).map(cluster),
+    small.length ? `<div class="cluster-row">${small.map(cluster).join("")}</div>` : "",
+  ];
   return `<section class="day" data-day="${day}"><h2 class="day-title">${heading} <span class="n">${counts}</span></h2>${clusters.join("")}</section>`;
 }
 
