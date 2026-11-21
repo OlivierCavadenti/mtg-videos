@@ -10,7 +10,7 @@ import { COLOR_NAMES, duration, el, esc, fullDay, groupByFormat, loadArchive, lo
 const ARCHIVE = "../";
 /** A video of the day has at least half again its creator's usual views. */
 const STANDS_OUT = 1.5;
-/** A format with this many videos or fewer shares a row with the other small ones. */
+/** A format with this many videos or fewer shares a block with the other small ones. */
 const SMALL = 2;
 let data: Loaded;
 
@@ -74,13 +74,31 @@ const COMBINATIONS: Record<string, string> = {
 const combination = (colors: string) =>
   colors.length === 1 ? `Mono-${COLOR_NAMES[colors]!.toLowerCase()}` : (COMBINATIONS[colors] ?? (colors.length === 4 ? "Four colors" : "Five colors"));
 
+/** How many tile columns a group takes when there is room: the video of the day takes two by two. */
+const columns = (l: Item[], pick: Item | undefined) => (pick && l.includes(pick) ? 2 + Math.ceil((l.length - 1) / 2) : l.length);
+
+/** A CSS color for a color combination: its mana colors mixed in equal parts. */
+const tint = (colors: string) =>
+  [...colors]
+    .map((c) => `var(--mana-${c.toLowerCase()})`)
+    .reduce((mix, color, i) => `color-mix(in oklab, ${mix}, ${color} ${Math.round(100 / (i + 1))}%)`);
+
+/** A rule in the combination's colors, side by side. */
+const bar = (colors: string) =>
+  `linear-gradient(90deg, ${[...colors].map((c, i) => `var(--mana-${c.toLowerCase()}) ${Math.round((i * 100) / colors.length)}% ${Math.round(((i + 1) * 100) / colors.length)}%`).join(", ")})`;
+
+/** A framed group of tiles under a heading; tinted with its colors when it has some. */
+function group(head: string, l: Item[], pick: Item | undefined, colors = ""): string {
+  const style = `--cols:${columns(l, pick)}${colors ? `;--tint:${tint(colors)};--bar:${bar(colors)}` : ""}`;
+  return `<div class="cgroup${colors ? " colored" : ""}" style="${style}"><p class="chead">${head}</p><div class="mosaic">${l.map((v) => tile(v, v === pick)).join("")}</div></div>`;
+}
+
 /**
- * A format's videos by colors played: one line per color combination (most videos first), then the
+ * A format's videos by colors played: one group per color combination (most videos first), then the
  * videos whose colors are not known. Without two videos with known colors, no grouping.
  */
 function byColors(list: Item[], pick: Item | undefined): string {
-  const tiles = (l: Item[]) => l.map((v) => tile(v, v === pick)).join("");
-  if (list.filter((v) => v.colors).length < 2) return `<div class="mosaic">${tiles(list)}</div>`;
+  if (list.filter((v) => v.colors).length < 2) return `<div class="mosaic">${list.map((v) => tile(v, v === pick)).join("")}</div>`;
   const groups = new Map<string, Item[]>();
   for (const v of list) {
     const k = v.colors ?? "";
@@ -99,32 +117,48 @@ function byColors(list: Item[], pick: Item | undefined): string {
       const head = k
         ? `<span class="pips">${[...k].map((c) => pip(c)).join("")}</span> <strong>${combination(k)}</strong> <span class="n">${l.length}</span>${archetypes.length ? ` <span class="archs">${archetypes.map(esc).join(", ")}</span>` : ""}${heardOnly ? ' <span class="archs" title="Colors told by the cards discussed in the video">from the cards discussed</span>' : ""}`
         : `<strong>Colors not named</strong> <span class="n">${l.length}</span>`;
-      return `<div class="cgroup"><p class="chead">${head}</p><div class="mosaic">${tiles(l)}</div></div>`;
+      return group(head, l, pick, k);
     })
     .join("");
 }
+
+/** A format's videos in their order: sets in order (Limited, Cube), the video of the day first. */
+const inOrder = (g: FormatGroup, pick: Item | undefined) =>
+  (g.bySet ? g.bySet.flatMap((s) => s.items) : g.items).sort((a, b) => Number(b === pick) - Number(a === pick));
+
+/** The set names of a format's videos, for Limited and Cube. */
+const setNames = (g: FormatGroup) =>
+  (g.bySet ?? [])
+    .map(({ code }) => (code ? data.setByCode.get(code)?.name : undefined))
+    .filter((name): name is string => Boolean(name))
+    .map(esc)
+    .join(", ");
 
 function daySection(day: string, list: Item[], heading: string): string {
   if (!list.length) return `<section class="day"><h2 class="day-title">${heading}</h2><p class="status">No video on this day.</p></section>`;
   const pick = pickOfTheDay(list);
   const podcasts = list.filter((v) => v.url !== undefined).length;
   const counts = podcasts ? `${plural(list.length - podcasts, "video")} and ${plural(podcasts, "podcast episode")}` : plural(list.length, "video");
-  // One block per format, each on its own rows: its title tile, then its videos, sets in order. The
-  // video of the day takes a double tile in its format's block, which comes first. Formats with one
-  // or two videos share a last row, side by side, without color groups.
+  // One framed block per format: its title on the left, its videos on the right, by colors played.
+  // The video of the day takes a double tile in its format's block, which comes first. Formats with
+  // one or two videos share a last block, one group each.
   const groups = groupByFormat(list).sort((a, b) => Number(Boolean(pick && b.items.includes(pick))) - Number(Boolean(pick && a.items.includes(pick))));
   const isSmall = (g: FormatGroup) => g.items.length <= SMALL && !(pick && g.items.includes(pick));
-  const cluster = (g: FormatGroup) => {
-    // Sets in order (Limited, Cube), the video of the day first.
-    const ordered = (g.bySet ? g.bySet.flatMap((s) => s.items) : g.items).sort((a, b) => Number(b === pick) - Number(a === pick));
-    const body = isSmall(g) ? `<div class="mosaic">${ordered.map((v) => tile(v)).join("")}</div>` : byColors(ordered, pick);
-    return `<div class="cluster" data-format="${g.format}">${labelTile(g)}<div class="cluster-body">${body}</div></div>`;
-  };
   const small = groups.filter(isSmall);
-  const clusters = [
-    ...groups.filter((g) => !isSmall(g)).map(cluster),
-    small.length ? `<div class="cluster-row">${small.map(cluster).join("")}</div>` : "",
-  ];
+  const shared = small.length >= 2;
+  const big = groups.filter((g) => !shared || !isSmall(g));
+  const clusters = big.map((g) => `<div class="cluster" data-format="${g.format}">${labelTile(g)}<div class="cluster-body">${byColors(inOrder(g, pick), pick)}</div></div>`);
+  if (shared) {
+    const videos = small.reduce((n, g) => n + g.items.length, 0);
+    const label = `<div class="mlabel"><span class="fmt">${big.length ? "More formats" : "Formats"}</span><span class="n">${plural(videos, "video")}</span></div>`;
+    const body = small
+      .map((g) => {
+        const sets = setNames(g);
+        return group(`<strong>${esc(FORMAT_NAMES[g.format])}</strong> <span class="n">${g.items.length}</span>${sets ? ` <span class="archs">${sets}</span>` : ""}`, inOrder(g, pick), pick);
+      })
+      .join("");
+    clusters.push(`<div class="cluster" data-format="more">${label}<div class="cluster-body">${body}</div></div>`);
+  }
   return `<section class="day" data-day="${day}"><h2 class="day-title">${heading} <span class="n">${counts}</span></h2>${clusters.join("")}</section>`;
 }
 

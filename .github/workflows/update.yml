@@ -1,10 +1,12 @@
 name: Update and publish
 
-# Every day: read the creators' feeds, commit the new videos, publish the page on GitHub Pages.
-# A push to main only publishes.
+# Every hour: read the creators' feeds, commit the new videos, publish the page on GitHub Pages.
+# Once a day (06:23 UTC) the sets and cards are read from Scryfall as well. A push to main only
+# publishes.
 on:
   schedule:
     - cron: "23 6 * * *"
+    - cron: "23 0-5,7-23 * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -35,8 +37,10 @@ jobs:
           # Optional: with a YouTube Data API key, durations come with each new video.
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
-          npm run sets || echo "Scryfall unavailable: the sets stay as they were"
-          npm run cards || echo "Scryfall unavailable: the cards stay as they were"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event.schedule }}" = "23 6 * * *" ]; then
+            npm run sets || echo "Scryfall unavailable: the sets stay as they were"
+            npm run cards || echo "Scryfall unavailable: the cards stay as they were"
+          fi
           npm run sync
           npm run views
 
@@ -47,7 +51,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data
           if ! git diff --cached --quiet; then
-            git commit -m "Data: videos of $(date -u +%F)"
+            git commit -m "Data: videos of $(date -u '+%F %H:%M') UTC"
             git pull --rebase
             git push
           fi

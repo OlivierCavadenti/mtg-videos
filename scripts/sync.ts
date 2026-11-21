@@ -1,5 +1,5 @@
 /**
- * Daily update: reads every creator's feed and adds what is new to data/videos/.
+ * Hourly update: reads every creator's feed and adds what is new to data/videos/.
  *   npm run sync [-- --creator <id>]
  * YouTube feeds list the 15 latest uploads; with YOUTUBE_API_KEY set, the API is read instead
  * (two pages: durations included). Podcast feeds hold their whole history.

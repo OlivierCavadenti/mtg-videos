@@ -8,7 +8,7 @@ The page files every video by **period**, then by **format**, then, for Limited 
 goes to that set's period, even when it came out a few weeks before release (previews, set
 reviews). Any other video goes by its publication date.
 
-The archive starts on 1 January 2025 and is updated every day from the creators' feeds.
+The archive starts on 1 January 2025 and is updated every hour from the creators' feeds.
 
 A second page, <https://oliviercavadenti.github.io/mtg-videos/day/>, shows the videos of one day,
 midnight to midnight in the reader's time zone, by format and set, with a link per day
@@ -29,8 +29,8 @@ No server and no database. Everything is static files in this repository:
 | `scripts/` | The data scripts (Node 22, TypeScript run with `tsx`) |
 | `src/` | The page (Vite, plain TypeScript, no framework) |
 
-A GitHub Action (`.github/workflows/update.yml`) runs every day. It reads the feeds, commits the new
-videos and publishes the page on GitHub Pages.
+A GitHub Action (`.github/workflows/update.yml`) runs every hour. It reads the feeds, commits the new
+videos and publishes the page on GitHub Pages; once a day it also reads the sets and cards from Scryfall.
 
 ## Commands
 
@@ -95,13 +95,13 @@ here.
 run read every older video). Reading them once keeps the data files from changing every day. A
 video's score is its views divided by the median of its creator's other videos read at the same
 stage: the 30 read the day after release before it, or, for older videos, those published within
-two months around it. The daily Action reads them with the `YOUTUBE_API_KEY` secret.
+two months around it. The hourly Action reads them with the `YOUTUBE_API_KEY` secret.
 
 ## Adding a creator
 
 Add an entry to `config/creators.json`: a YouTube feed
 (`https://www.youtube.com/feeds/videos.xml?channel_id=UC…`) or a podcast RSS feed. Then run
-`npm run backfill -- --creator <id>` with a YouTube API key, or wait for the next daily run, which
+`npm run backfill -- --creator <id>` with a YouTube API key, or wait for the next hourly run, which
 only picks up their latest uploads.
 
 ## Credits

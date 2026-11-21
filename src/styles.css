@@ -23,6 +23,12 @@
   --nav: 210px;
   --sticky: 76px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* The five colors of Magic, for the color groups of the day page (tints and rules). */
+  --mana-w: #d8c27a;
+  --mana-u: #2f6fae;
+  --mana-b: #3d3833;
+  --mana-r: #c4422f;
+  --mana-g: #2e7a48;
   color-scheme: light;
 }
 
@@ -36,6 +42,7 @@
     --rule: #3a352c;
     --accent: #e08a6c;
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5);
+    --mana-b: #9a9286;
     color-scheme: dark;
   }
   .symbol,
@@ -210,49 +217,56 @@ button {
   font-weight: 400;
 }
 
-/* The day as a mosaic: tiles touch, the video of the day takes four. */
+/* The day as a mosaic: tiles touch, all the same width, the video of the day takes four. */
+.day-main {
+  --tile: min(222px, calc(50vw - 46px));
+}
+
 .mosaic {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, var(--tile));
+  grid-auto-flow: row dense;
   gap: 4px;
 }
 
-/* One block per format: its title in a column on the left, its videos on the right. */
+/* One framed block per format: its title in a column on the left, its videos on the right. */
 .cluster {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
-  gap: 4px;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 6px 10px;
+  padding: 8px;
+  border: 1px solid var(--rule);
+  background: color-mix(in oklab, var(--paper-2) 55%, var(--paper));
 }
 
-/* Color groups flow side by side, each its heading over its tiles. */
+.cluster + .cluster {
+  margin-top: 10px;
+}
+
+/* Groups (colors played, or the small formats) flow side by side. */
 .cluster-body:has(.cgroup) {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 8px 14px;
+  gap: 6px;
 }
 
+/* A group is as wide as its tiles; a group with colors is tinted with them, its rule in them. */
 .cgroup {
+  width: calc(var(--cols) * (var(--tile) + 4px) + 6px);
   max-width: 100%;
+  padding: 3px 5px 5px;
+  border-top: 3px solid var(--rule);
+  background: var(--paper);
 }
 
-.cgroup .mosaic {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.cgroup .mtile {
-  width: min(222px, calc(50vw - 30px));
-}
-
-.cgroup .mtile.pick {
-  width: min(448px, calc(100vw - 48px));
-  aspect-ratio: 16 / 9;
+.cgroup.colored {
+  border-image: var(--bar) 1;
+  background: color-mix(in oklab, var(--tint) 20%, var(--paper));
 }
 
 .chead {
-  margin: 0 0 3px;
+  margin: 0 0 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -269,51 +283,6 @@ button {
 .chead .archs {
   font: italic 13px var(--serif);
   color: var(--ink-faint);
-}
-
-.cluster + .cluster,
-.cluster + .cluster-row {
-  margin-top: var(--space-3);
-}
-
-/* Formats with one or two videos side by side: each its name over its tiles. */
-.cluster-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--space-3) 14px;
-}
-
-.cluster-row .cluster {
-  display: block;
-  max-width: 100%;
-}
-
-.cluster-row .cluster + .cluster {
-  margin-top: 0;
-}
-
-/* The name never widens its block: the tiles set the width, the name wraps under them. */
-.cluster-row .mlabel {
-  width: 0;
-  min-width: 100%;
-  flex-flow: row wrap;
-  align-items: baseline;
-  gap: 2px 8px;
-  padding: 6px 0 4px;
-}
-
-.cluster-row .mlabel .fmt {
-  font-size: 20px;
-}
-
-.cluster-row .mosaic {
-  display: flex;
-  gap: 4px;
-}
-
-.cluster-row .mtile {
-  width: min(222px, calc(50vw - 30px));
 }
 
 .mtile {
@@ -418,9 +387,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 8px 10px 8px 0;
-  border-top: 3px double var(--ink);
-  background: var(--paper);
+  padding: 2px 0;
 }
 
 .mlabel .fmt {
