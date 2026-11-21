@@ -1,0 +1,415 @@
+{
+  "historyStart": "2025-01-01",
+  "creators": [
+    {
+      "id": "lsv",
+      "name": "Luis Scott-Vargas",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCudtKsAeSLbudo0hIgQOSDQ",
+      "home": "https://www.youtube.com/@LSVargas",
+      "focus": [
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "paul-cheon",
+      "name": "Paul Cheon",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UC1iaQ8aFrDS6n_lytS4fBBA",
+      "home": "https://www.youtube.com/@haumph",
+      "focus": [
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "nizzahon-magic",
+      "name": "Nizzahon Magic",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCkfWtgQSg3yp7vmIj3Z5W0A",
+      "home": "https://www.youtube.com/@NizzahonMagic",
+      "focus": [
+        "limited",
+        "general"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "numotthenummy",
+      "name": "NumotTheNummy",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCLzE7jLdn7dqxK-0OdXeuaw",
+      "home": "https://www.youtube.com/@NumotTheNummyYT",
+      "focus": [
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "limited-resources",
+      "name": "Limited Resources",
+      "platform": "podcast",
+      "feed": "https://rss.libsyn.com/shows/44533/destinations/143254.xml",
+      "home": "https://www.youtube.com/@LimitedResourcesPodcast",
+      "focus": [
+        "limited"
+      ],
+      "language": "en",
+      "show": "limited-resources"
+    },
+    {
+      "id": "limited-resources-video",
+      "name": "Limited Resources",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCT22Ehr7vuRpIAaJ7dEkApg",
+      "home": "https://www.youtube.com/@LimitedResourcesPodcast",
+      "focus": [
+        "limited"
+      ],
+      "language": "en",
+      "show": "limited-resources"
+    },
+    {
+      "id": "lords-of-limited",
+      "name": "Lords of Limited",
+      "platform": "podcast",
+      "feed": "https://audioboom.com/channels/5064090.rss",
+      "home": "https://www.lordsoflimited.com/",
+      "focus": [
+        "limited"
+      ],
+      "language": "en",
+      "show": "lords-of-limited"
+    },
+    {
+      "id": "lords-of-limited-video",
+      "name": "Lords of Limited",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCMPGhxHH1YRH6ne-rZHHCsQ",
+      "home": "https://www.youtube.com/@LordsofLimited",
+      "focus": [
+        "limited"
+      ],
+      "language": "en",
+      "show": "lords-of-limited"
+    },
+    {
+      "id": "limited-level-ups",
+      "name": "Limited Level-Ups",
+      "platform": "podcast",
+      "feed": "https://rss.libsyn.com/shows/226454/destinations/1663025.xml",
+      "home": "https://limitedlevelups.com/",
+      "focus": [
+        "limited"
+      ],
+      "language": "en",
+      "show": "limited-level-ups"
+    },
+    {
+      "id": "limited-level-ups-video",
+      "name": "Limited Level-Ups",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCG5KmWI7Yr71rbn0lOwcrfw",
+      "home": "https://www.youtube.com/@limitedlevel-ups",
+      "focus": [
+        "limited"
+      ],
+      "language": "en",
+      "show": "limited-level-ups"
+    },
+    {
+      "id": "magic-numbers",
+      "name": "Magic Numbers (Sierkovitz)",
+      "platform": "podcast",
+      "feed": "https://anchor.fm/s/7ce0ba24/podcast/rss",
+      "home": "https://www.youtube.com/@Sierkovitz",
+      "focus": [
+        "limited"
+      ],
+      "language": "en",
+      "show": "magic-numbers"
+    },
+    {
+      "id": "magic-numbers-video",
+      "name": "Magic Numbers (Sierkovitz)",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCMvOAsGWrS6Cb6dhgzWqShA",
+      "home": "https://www.youtube.com/@Sierkovitz",
+      "focus": [
+        "limited"
+      ],
+      "language": "en",
+      "show": "magic-numbers"
+    },
+    {
+      "id": "le-draft-de-drosan",
+      "name": "Le draft de Drosan",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCmtby2DHtUvyBOEYiTw1GxQ",
+      "home": "https://www.youtube.com/@Ledraftdedrosan",
+      "focus": [
+        "limited"
+      ],
+      "language": "fr"
+    },
+    {
+      "id": "jean-emmanuel-depraz",
+      "name": "Jean-Emmanuel Depraz",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCheVPpgNql8JjZlYGcbjyGw",
+      "home": "https://www.youtube.com/@JEDepraz",
+      "focus": [
+        "limited"
+      ],
+      "language": "fr"
+    },
+    {
+      "id": "dafore",
+      "name": "dafore_",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCn8hUcgXM0pO3t81EVzklJw",
+      "home": "https://www.youtube.com/@dafore_",
+      "focus": [
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "mtgnerdgirl",
+      "name": "MTGNerdGirl",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCOF3G2jaIFU6e1GWBH0FfZg",
+      "home": "https://www.youtube.com/@MTGNerdGirl",
+      "focus": [
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "draft-chaff",
+      "name": "Draft Chaff",
+      "platform": "podcast",
+      "feed": "https://api.riverside.com/hosting/tUvoNSj2.rss",
+      "home": "https://draftchaff.com/",
+      "focus": [
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "rough-drafts",
+      "name": "Rough Drafts",
+      "platform": "podcast",
+      "feed": "https://rss.libsyn.com/shows/574300/destinations/4972465.xml",
+      "home": "https://linktr.ee/roughdrafts",
+      "focus": [
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "unlimited-splash",
+      "name": "Unlimited Splash",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCX_XaTa-AYpiJYw7FWXrrrg",
+      "home": "https://www.youtube.com/@UnlimitedSplash",
+      "focus": [
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "limited-logic",
+      "name": "Limited Logic MTG",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCCdDC-ncuAmGplKTha8LIyw",
+      "home": "https://www.youtube.com/@LimitedLogicMTG",
+      "focus": [
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "nicolaibolas",
+      "name": "NicolaiBolas",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UC9LX2KnB85WKpcotB0iEa2Q",
+      "home": "https://www.youtube.com/@NicolaiBolas",
+      "focus": [
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "jim-davis",
+      "name": "Jim Davis",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCQ6oyMXjrzwbSpyjQVH3E3Q",
+      "home": "https://www.youtube.com/@JimDavisMTG",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "andrea-mengucci",
+      "name": "Andrea Mengucci",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCwIFsLCPrc1NGoNS0OGn0mw",
+      "home": "https://www.youtube.com/@AndreaMengucci",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "mengus-workshop",
+      "name": "Mengu's Workshop",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?playlist_id=UULFGZdKNOxKdSNL1Qht9aC8tQ",
+      "home": "https://www.youtube.com/@MengusWorkshop",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "yellowhat",
+      "name": "Gabriel Nassif (yellowhat)",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UC1py233U9XMeP9Dw_OPwnoQ",
+      "home": "https://www.youtube.com/@yellowhatmtg",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "shahar-shenhar",
+      "name": "Shahar Shenhar",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCFP0XNUlzxHfRWXLS_1Aixg",
+      "home": "https://www.youtube.com/@shahar_shenhar",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "corey-burkhart",
+      "name": "Corey Burkhart",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCpsCt-B6Jo6NlTNotMW6DeA",
+      "home": "https://www.youtube.com/@CoreyBMTG",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "kanister-vods",
+      "name": "kanister",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UC9i553FgwmgdZZRlMDmaqtA",
+      "home": "https://www.youtube.com/@kanisterVODs",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "aspiringspike",
+      "name": "Aspiringspike",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCBbhh1GKazuVzZn4GtlPBWQ",
+      "home": "https://www.youtube.com/@aspiringspike",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "covertgoblue",
+      "name": "CovertGoBlue",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UC-UZjHl2kZ-6XKBLgbFgGAQ",
+      "home": "https://www.youtube.com/@covertgoblue",
+      "focus": [
+        "constructed"
+      ],
+      "format": "standard",
+      "language": "en"
+    },
+    {
+      "id": "ashlizzlle",
+      "name": "Ashlizzlle",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UC9HvNU6-MihLe5JGBkJ3DgQ",
+      "home": "https://www.youtube.com/@Ashlizzlle",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "ondrej-strasky",
+      "name": "Ondřej Stráský",
+      "platform": "youtube",
+      "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=UCcHnuFT0tKhWWRKMZbIQtAw",
+      "home": "https://www.youtube.com/@OndrejStrasky",
+      "focus": [
+        "constructed",
+        "limited"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "gerryt-podcast",
+      "name": "GerryT Podcast",
+      "platform": "podcast",
+      "feed": "https://feeds.soundcloud.com/users/soundcloud:users:229566966/sounds.rss",
+      "home": "https://soundcloud.com/user-121566285",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "sams-table",
+      "name": "Sam's Table (Sam Black)",
+      "platform": "podcast",
+      "feed": "https://anchor.fm/s/10945ef5c/podcast/rss",
+      "home": "https://www.youtube.com/@samuelhblack",
+      "focus": [
+        "constructed",
+        "commander",
+        "general"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "eternal-durdles",
+      "name": "Eternal Durdles",
+      "platform": "podcast",
+      "feed": "https://anchor.fm/s/e7785f4/podcast/rss",
+      "home": "https://eternaldurdles.com/",
+      "focus": [
+        "constructed"
+      ],
+      "language": "en"
+    },
+    {
+      "id": "common-ground-pauper",
+      "name": "Common Ground (Pauper)",
+      "platform": "podcast",
+      "feed": "https://rss.buzzsprout.com/2284313.rss",
+      "home": "https://linktr.ee/commongroundmtg",
+      "focus": [
+        "constructed"
+      ],
+      "format": "pauper",
+      "language": "en"
+    }
+  ]
+}
