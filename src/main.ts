@@ -16,9 +16,14 @@ interface Filters {
   kind?: Kind;
   creator?: string;
   lang?: Language;
+  /** Colors the deck must play, in WUBRG order ("UB": Dimir, Esper, Sultai…). */
+  colors?: string;
   q?: string;
 }
 type FilterKey = keyof Filters;
+const COLORS = ["W", "U", "B", "R", "G"] as const;
+const COLOR_NAMES: Record<string, string> = { W: "White", U: "Blue", B: "Black", R: "Red", G: "Green" };
+const pip = (c: string, size = 14) => `<img class="pip" src="https://svgs.scryfall.io/card-symbols/${c}.svg" alt="${COLOR_NAMES[c]}" title="${COLOR_NAMES[c]}" width="${size}" height="${size}" />`;
 
 interface Item extends ArchiveVideo {
   creatorName: string;
@@ -69,6 +74,9 @@ function readFilters(): Filters {
   if (kind && (KINDS as readonly string[]).includes(kind)) f.kind = kind as Kind;
   const creator = p.get("creator");
   if (creator && archive.creators.some((c) => c.id === creator)) f.creator = creator;
+  const colors = (p.get("colors") ?? "").toUpperCase();
+  const picked = COLORS.filter((c) => colors.includes(c)).join("");
+  if (picked) f.colors = picked;
   const lang = p.get("lang");
   if (lang === "en" || lang === "fr") f.lang = lang;
   const q = p.get("q")?.trim();
@@ -89,6 +97,9 @@ function matches(v: Item, skip?: FilterKey): boolean {
   if (filters.kind && skip !== "kind" && v.kind !== filters.kind) return false;
   if (filters.creator && skip !== "creator" && archive.creators[v.c]!.id !== filters.creator) return false;
   if (filters.lang && skip !== "lang" && v.language !== filters.lang) return false;
+  if (filters.colors && skip !== "colors") {
+    for (const c of filters.colors) if (!v.colors?.includes(c)) return false;
+  }
   if (filters.q && skip !== "q") {
     for (const word of fold(filters.q).split(/\s+/)) if (word && !v.haystack.includes(word)) return false;
   }
@@ -131,7 +142,8 @@ function renderFilterBar() {
         <label><span class="sr-only">Set</span><select data-filter="set"></select></label>
         <label><span class="sr-only">Creator</span><select data-filter="creator"></select></label>
         <label><span class="sr-only">Language</span><select data-filter="lang"></select></label>
-        <label class="search"><span class="sr-only">Search</span><input type="search" data-filter="q" placeholder="Search titles, archetypes, creators" autocomplete="off" /></label>
+        <span class="colors" role="group" aria-label="Colors played"></span>
+        <label class="search"><span class="sr-only">Search</span><input type="search" data-filter="q" placeholder="Search titles, cards, archetypes" autocomplete="off" /></label>
         <p class="summary" aria-live="polite"></p>
       </div>`;
     // The periods' sticky offsets follow the height of this bar.
@@ -150,9 +162,13 @@ function renderFilterBar() {
       timer = window.setTimeout(() => setFilter("q", target.value.trim().slice(0, 80)), 180);
     });
     bar.addEventListener("click", (e) => {
-      const button = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-format], button[data-clear]");
+      const button = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-format], button[data-clear], button[data-color]");
       if (!button) return;
-      if (button.dataset.clear !== undefined) {
+      if (button.dataset.color) {
+        const c = button.dataset.color;
+        const next = filters.colors?.includes(c) ? filters.colors.replace(c, "") : `${filters.colors ?? ""}${c}`;
+        setFilter("colors", COLORS.filter((x) => next.includes(x)).join(""));
+      } else if (button.dataset.clear !== undefined) {
         filters = {};
         expanded.clear();
         bar.querySelector<HTMLInputElement>("input[data-filter=q]")!.value = "";
@@ -190,6 +206,10 @@ function renderFilterBar() {
       .map((c) => option(c.id, `${c.name}${c.language === "fr" ? " · FR" : ""}`, filters.creator === c.id, creators.get(c.id) ?? 0))
       .join("");
   bar.querySelector("select[data-filter=creator]")!.innerHTML = `${option("", "All creators", !filters.creator)}<optgroup label="Videos">${creatorOptions("youtube")}</optgroup><optgroup label="Podcasts">${creatorOptions("podcast")}</optgroup>`;
+
+  bar.querySelector(".colors")!.innerHTML = COLORS.map(
+    (c) => `<button type="button" data-color="${c}" aria-pressed="${Boolean(filters.colors?.includes(c))}" title="Decks playing ${COLOR_NAMES[c]!.toLowerCase()}">${pip(c, 18)}</button>`,
+  ).join("");
 
   const langs = countBy("lang", (v) => v.language);
   bar.querySelector("select[data-filter=lang]")!.innerHTML = [
@@ -261,11 +281,24 @@ function card(v: Item): string {
     ...(v.also ?? []).map((f) => esc(FORMAT_NAMES[f])),
     ...(v.archetypes ?? []).map((a) => `<span class="arch">${esc(a)}</span>`),
   ].filter(Boolean);
+  const pips = v.colors ? `<span class="pips">${[...v.colors].map((c) => pip(c)).join("")}</span> ` : "";
+  // Cards heard in the transcript: each opens the video where it comes up.
+  const heard = (v.cards ?? []).filter((c): c is [string, number] => c[1] !== undefined);
+  const cards = heard.length
+    ? `<details class="heard"><summary>${plural(heard.length, "card")} discussed</summary><p>${heard
+        .map(([name, at]) =>
+          v.url === undefined
+            ? `<a href="https://www.youtube.com/watch?v=${esc(v.id)}&amp;t=${at}s" target="_blank" rel="noopener">${esc(name)}</a> <span class="at">${duration(at)}</span>`
+            : `${esc(name)} <span class="at">${duration(at)}</span>`,
+        )
+        .join(" · ")}</p></details>`
+    : "";
   return `<article class="card">
     <a class="thumb" href="${esc(v.href)}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">${thumb}${v.duration ? `<span class="len">${duration(v.duration)}</span>` : ""}</a>
     <p class="by"><button type="button" data-creator="${esc(creator.id)}">${esc(creator.name)}</button>${creator.language === "fr" ? ` <span class="lang">FR</span>` : ""}, <time datetime="${v.date}">${shortDate.format(utc(v.date))}</time></p>
     <h4><a href="${esc(v.href)}" target="_blank" rel="noopener"${v.summary ? ` title="${esc(v.summary)}"` : ""}>${esc(v.title)}</a></h4>
-    ${tags.length ? `<p class="tags">${tags.join(" · ")}</p>` : ""}
+    ${tags.length || pips ? `<p class="tags">${pips}${tags.join(" · ")}</p>` : ""}
+    ${cards}
     ${v.podcast ? `<p class="alt">Also as a <a href="${esc(v.podcast)}" target="_blank" rel="noopener">podcast episode</a></p>` : ""}
   </article>`;
 }
@@ -411,7 +444,7 @@ async function start() {
       creatorName: creator.name,
       language: creator.language,
       href: v.url ?? `https://www.youtube.com/watch?v=${v.id}`,
-      haystack: fold([v.title, creator.name, set?.name ?? "", v.set ?? "", ...(v.archetypes ?? [])].join(" ")),
+      haystack: fold([v.title, creator.name, set?.name ?? "", v.set ?? "", ...(v.archetypes ?? []), ...(v.cards ?? []).map((c) => c[0])].join(" ")),
     };
   });
   const updated = shortDate.format(new Date(archive.generated));

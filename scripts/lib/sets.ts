@@ -9,7 +9,7 @@ const DRAFTABLE = new Set(["expansion", "core", "draft_innovation", "masters"]);
 /** Main sets: each release opens a new period of the timeline. */
 export const isMainSet = (s: SetInfo) => (s.type === "expansion" || s.type === "core") && !s.digital && !s.parent;
 
-const isDraftable = (s: SetInfo) => DRAFTABLE.has(s.type) && !s.digital && !s.parent;
+export const isDraftableSet = (s: SetInfo) => DRAFTABLE.has(s.type) && !s.digital && !s.parent;
 
 export function loadSets(): SetInfo[] {
   return JSON.parse(readFileSync(new URL("../../data/sets.json", import.meta.url), "utf8")) as SetInfo[];
@@ -91,7 +91,7 @@ export class SetIndex {
   constructor(sets: SetInfo[], aliases: Record<string, string[]> = loadAliases()) {
     this.byCode = new Map(sets.map((s) => [s.code, s]));
     this.matchers = sets
-      .filter((s) => isDraftable(s) && s.released)
+      .filter((s) => isDraftableSet(s) && s.released)
       .map((s) => ({ code: s.code, released: Date.parse(s.released), names: namesOf(s, aliases[s.code] ?? []), main: isMainSet(s) }));
     this.mainSets = sets.filter((s) => isMainSet(s) && s.released).sort((a, b) => a.released.localeCompare(b.released));
   }

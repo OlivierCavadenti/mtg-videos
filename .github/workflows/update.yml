@@ -36,6 +36,7 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
           npm run sets || echo "Scryfall unavailable: the sets stay as they were"
+          npm run cards || echo "Scryfall unavailable: the cards stay as they were"
           npm run sync
 
       - name: Commit the new videos

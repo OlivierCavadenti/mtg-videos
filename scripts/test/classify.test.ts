@@ -5,6 +5,7 @@ import { classify, formatsIn, offTopic, similarity, titleWords } from "../lib/cl
 import { parsePodcastFeed, parseYoutubeFeed } from "../lib/feeds.ts";
 import { loadSets, SetIndex } from "../lib/sets.ts";
 import { parseIsoDuration, uploadPlaylists } from "../lib/youtube.ts";
+import { archetypesIn, colorsIn } from "../lib/tags.ts";
 
 const sets = new SetIndex(loadSets());
 const creator = (over: Partial<Creator> = {}): Creator => ({ id: "c", name: "Someone", platform: "youtube", feed: "https://example.com", home: "https://example.com", focus: ["constructed"], language: "en", ...over });
@@ -63,4 +64,15 @@ test("feeds and API values are parsed", () => {
   assert.deepEqual([p?.externalId, p?.title, p?.duration], ["g1", "Ep 1", 3723]);
   assert.equal(parseIsoDuration("PT1H2M3S"), 3723);
   assert.deepEqual(uploadPlaylists("https://www.youtube.com/feeds/videos.xml?channel_id=UCabc"), ["UULFabc", "UULVabc"]);
+});
+
+test("colors and archetypes come from the title", () => {
+  assert.equal(colorsIn("Ouroboroid Is a BRO | Simic Midrange | Standard Bo3"), "UG");
+  assert.deepEqual(archetypesIn("Ouroboroid Is a BRO | Simic Midrange | Standard Bo3"), ["Simic Midrange"]);
+  assert.equal(colorsIn("Boros Tokens Hit HARD 🔴⚪ MTGA Standard"), "WR");
+  assert.deepEqual(archetypesIn("Boros Tokens Hit HARD"), ["Boros Tokens"]);
+  assert.equal(colorsIn("Mono-Red Aggro is back"), "R");
+  assert.equal(colorsIn("⚪ First Look! 🔵 Mechanics! ⚫ Themes! 🔴 And More! 🟢"), undefined);
+  assert.equal(colorsIn("THIS BUG IS BROKEN"), undefined);
+  assert.equal(colorsIn("RUG Delver in Legacy"), "URG");
 });

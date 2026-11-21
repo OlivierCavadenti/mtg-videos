@@ -7,11 +7,14 @@
 import type { Video } from "../shared/model.ts";
 import { classify, offTopic, placeSet } from "./lib/classify.ts";
 import { loadSets, SetIndex } from "./lib/sets.ts";
+import { applyTags, CardIndex } from "./lib/tags.ts";
 import { creatorMap, loadConfig, Store } from "./lib/store.ts";
 
 const config = loadConfig();
 const creators = creatorMap(config);
-const sets = new SetIndex(loadSets());
+const allSets = loadSets();
+const sets = new SetIndex(allSets);
+const cards = CardIndex.load(new Map(allSets.map((s) => [s.code, s])));
 const store = Store.load();
 let changed = 0;
 for (const v of store.all()) {
@@ -40,6 +43,7 @@ for (const v of store.all()) {
       Object.assign(next, placeSet(v.title, new Date(v.published), v.formats, v.kind, sets));
     }
   }
+  if (!next.hidden) applyTags(next, cards);
   if (JSON.stringify(next) !== before) {
     store.put(next);
     changed++;

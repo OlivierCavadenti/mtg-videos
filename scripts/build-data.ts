@@ -109,6 +109,9 @@ const out: ArchiveVideo[] = videos.map((v) => {
   if (v.set) a.set = v.set;
   if (v.setFrom === "date") a.setGuessed = true;
   if (v.archetypes?.length) a.archetypes = v.archetypes;
+  if (v.colors) a.colors = v.colors;
+  // Cards heard in the transcript link to their first mention; the most discussed come first.
+  if (v.cards?.length) a.cards = v.cards.map((c): [string, number?] => (c.at?.length ? [c.name, c.at[0]] : [c.name]));
   if (v.summary) a.summary = v.summary;
   const podcast = podcastOf.get(v);
   if (podcast) a.podcast = podcast;

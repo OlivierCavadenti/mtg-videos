@@ -212,6 +212,79 @@ button {
   color: var(--ink);
 }
 
+.colors {
+  display: inline-flex;
+  gap: 2px;
+  align-self: center;
+}
+
+.colors button {
+  padding: 2px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+  opacity: 0.35;
+  border-bottom: 2px solid transparent;
+}
+
+.colors button:hover {
+  opacity: 0.75;
+}
+
+.colors button[aria-pressed="true"] {
+  opacity: 1;
+  border-bottom-color: var(--accent);
+}
+
+.pip {
+  vertical-align: -2px;
+}
+
+.pips {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.heard {
+  margin-top: var(--space-1);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.heard summary {
+  cursor: pointer;
+  font-style: italic;
+  list-style: none;
+}
+
+.heard summary::-webkit-details-marker {
+  display: none;
+}
+
+.heard summary::before {
+  content: "+ ";
+  font-style: normal;
+}
+
+.heard[open] summary::before {
+  content: "− ";
+}
+
+.heard summary:hover {
+  color: var(--accent);
+}
+
+.heard p {
+  margin: var(--space-1) 0 0;
+  font: 14px/1.4 var(--narrow);
+}
+
+.heard .at {
+  color: var(--ink-faint);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
 .refine .search {
   flex: 0 1 240px;
 }

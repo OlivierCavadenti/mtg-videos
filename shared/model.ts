@@ -122,10 +122,28 @@ export interface Video {
   /** Formats read in the transcript when the title names none (transcripts themselves are not kept). */
   heard?: Format[];
   archetypes?: string[];
+  /** Colors played, in WUBRG order ("UB"), from the title (guilds, "mono-red", "UW", colored emoji). */
+  colors?: string;
+  /** Cards named in the title, or heard in the transcript with the seconds they come up at. */
+  cards?: CardMention[];
   /** One sentence, written by the classifier (never the creator's text). */
   summary?: string;
   /** "llm" (classified by a language model on ManaRadar) or "rules" (scripts/lib/classify.ts). */
   by: "llm" | "rules";
+}
+
+export interface CardMention {
+  name: string;
+  /** Seconds into the video where the card comes up (transcripts only). */
+  at?: number[];
+}
+
+/** One card of data/cards.json. */
+export interface CardInfo {
+  name: string;
+  set: string;
+  /** WUBRG order, empty for colorless. */
+  colors: string;
 }
 
 export interface SetInfo {
@@ -176,6 +194,9 @@ export interface ArchiveVideo {
   /** Index in `eras`. */
   era: number;
   archetypes?: string[];
+  colors?: string;
+  /** Cards it discusses, most discussed first: [name, seconds of the first mention] (no time when only named in the title). */
+  cards?: Array<[string, number?]>;
   summary?: string;
   /** The same episode as a podcast. */
   podcast?: string;

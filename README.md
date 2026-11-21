@@ -20,6 +20,7 @@ No server and no database. Everything is static files in this repository:
 | `config/set-aliases.json` | Nicknames of sets in video titles ("Spider-Man", "TMNT") |
 | `data/videos/{year}.json` | Every video, one per line: the archive itself |
 | `data/sets.json` | Sets from Scryfall |
+| `data/cards.json` | Name and colors of every card of those sets, to find cards in titles |
 | `scripts/` | The data scripts (Node 22, TypeScript run with `tsx`) |
 | `src/` | The page (Vite, plain TypeScript, no framework) |
 
@@ -36,6 +37,7 @@ npm test
 
 npm run sync         # read every feed and add the new videos
 npm run sets         # refresh data/sets.json from Scryfall
+npm run cards        # refresh data/cards.json from Scryfall
 npm run reclassify   # apply the classification rules again (after editing them)
 YOUTUBE_API_KEY=… npm run backfill   # whole history back to historyStart
 ```
@@ -63,6 +65,23 @@ when it is about one, a set:
   video, with a link to the podcast episode.
 
 Edit the rules in `scripts/lib/classify.ts`, run `npm run reclassify`, and commit `data/`.
+
+## Colors, archetypes and cards
+
+`scripts/lib/tags.ts` reads three more things in a title:
+
+- **Colors played**: a guild, shard, clan or Strixhaven college ("Simic", "Esper", "Lorehold"),
+  "mono-red", "blue-black", capital letters ("UW", "RUG") or colored emoji (🔴⚪). The first one in
+  the title gives the deck's colors. A title with all five emoji is decoration and counts for none.
+- **Archetype**: that color term and the words naming the deck after it ("Simic Midrange",
+  "Golgari Icetill"). A language model's archetypes, when it found some, are kept.
+- **Cards**: names of cards from sets out within two years before the video. Names made only of
+  common words ("Last Chance") and game terms ("Flashback") are not looked for.
+
+Cards heard in a transcript come with the second they come up at: the page links each one to that
+moment of the video. They were imported from ManaRadar, which transcribes recent videos with
+faster-whisper and finds the cards of the sets it reviews. Transcripts themselves are not stored
+here.
 
 ## Adding a creator
 
