@@ -15,9 +15,10 @@ let data: Loaded;
 const shift = (day: string, days: number) => new Date(utc(day).getTime() + days * 86_400_000).toISOString().slice(0, 10);
 const today = () => localDay(new Date());
 
-function readDay(): { day: string; asked: boolean } {
+/** The day asked for in the URL (?d=YYYY-MM-DD), else today. */
+function readDay(): string {
   const d = new URLSearchParams(location.search).get("d");
-  return d && /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d)) ? { day: d, asked: true } : { day: today(), asked: false };
+  return d && /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d)) ? d : today();
 }
 
 function pickOfTheDay(list: Item[]): Item | undefined {
@@ -69,21 +70,22 @@ function daySection(day: string, list: Item[], heading: string): string {
   const pick = pickOfTheDay(list);
   const podcasts = list.filter((v) => v.url !== undefined).length;
   const counts = podcasts ? `${plural(list.length - podcasts, "video")} and ${plural(podcasts, "podcast episode")}` : plural(list.length, "video");
-  // The video of the day leads the mosaic; then each format, its title tile first, its sets in order.
-  const tiles = [pick ? tile(pick, true) : ""];
-  for (const g of groupByFormat(list.filter((v) => v !== pick))) {
-    tiles.push(labelTile(g));
-    for (const v of g.bySet ? g.bySet.flatMap((s) => s.items) : g.items) tiles.push(tile(v));
-  }
-  return `<section class="day" data-day="${day}"><h2 class="day-title">${heading} <span class="n">${counts}</span></h2><div class="mosaic">${tiles.join("")}</div></section>`;
+  // One block per format, each on its own rows: its title tile, then its videos, sets in order. The
+  // video of the day takes a double tile in its format's block, which comes first.
+  const groups = groupByFormat(list).sort((a, b) => Number(Boolean(pick && b.items.includes(pick))) - Number(Boolean(pick && a.items.includes(pick))));
+  const clusters = groups.map((g) => {
+    const ordered = (g.bySet ? g.bySet.flatMap((s) => s.items) : g.items).filter((v) => v !== pick);
+    const lead = pick && g.items.includes(pick) ? tile(pick, true) : "";
+    return `<div class="cluster" data-format="${g.format}">${labelTile(g)}<div class="mosaic">${lead}${ordered.map((v) => tile(v)).join("")}</div></div>`;
+  });
+  return `<section class="day" data-day="${day}"><h2 class="day-title">${heading} <span class="n">${counts}</span></h2>${clusters.join("")}</section>`;
 }
 
 function render() {
-  const { day, asked } = readDay();
+  const day = readDay();
   const now = today();
   const first = data.archive.since;
-  const onDay = (d: string) => data.items.filter((v) => v.day === d);
-  const list = onDay(day);
+  const list = data.items.filter((v) => v.day === day);
   const label = fullDay.format(utc(day));
   document.title = `${day === now ? "Today" : label}: Magic videos of the day`;
 
@@ -99,13 +101,8 @@ function render() {
     ${next}`;
   el("dek").textContent = `Every video and podcast episode of the day, midnight to midnight (${zone}), by format and set.`;
 
-  let html = daySection(day, list, day === now ? `Today, ${label}` : label);
-  // Early in the day there is little yet: yesterday follows, whole.
-  if (!asked && list.length < 5) {
-    const yesterday = shift(day, -1);
-    html += daySection(yesterday, onDay(yesterday), `Yesterday, ${fullDay.format(utc(yesterday))}`);
-  }
-  el("main").innerHTML = html;
+  // One day per page: the day before is a click (or the left arrow key) away.
+  el("main").innerHTML = daySection(day, list, day === now ? `Today, ${label}` : label);
 }
 
 function go(day: string) {
@@ -126,7 +123,7 @@ el("daynav").addEventListener("click", (e) => {
 });
 document.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement || e.altKey || e.ctrlKey || e.metaKey) return;
-  const { day } = readDay();
+  const day = readDay();
   if (e.key === "ArrowLeft" && day > data.archive.since) go(shift(day, -1));
   if (e.key === "ArrowRight" && day < today()) go(shift(day, 1));
 });

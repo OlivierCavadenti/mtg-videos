@@ -12,8 +12,7 @@ The archive starts on 1 January 2025 and is updated every day from the creators'
 
 A second page, <https://oliviercavadenti.github.io/mtg-videos/day/>, shows the videos of one day,
 midnight to midnight in the reader's time zone, by format and set, with a link per day
-(`day/?d=2026-11-20`). Early in the day, when little is out yet, yesterday follows in full. The
-**video of the day** is the one with the most views against its creator's usual, when it has at
+(`day/?d=2026-11-20`), one day per page. The **video of the day** is the one with the most views against its creator's usual, when it has at
 least half again as many.
 
 ## How it works
