@@ -134,8 +134,8 @@ const setNames = (g: FormatGroup) =>
     .map(esc)
     .join(", ");
 
-function daySection(day: string, list: Item[], heading: string): string {
-  if (!list.length) return `<section class="day"><h2 class="day-title">${heading}</h2><p class="status">No video on this day.</p></section>`;
+function daySection(day: string, list: Item[], heading: string, empty = "No video on this day."): string {
+  if (!list.length) return `<section class="day"><h2 class="day-title">${heading}</h2><p class="status">${esc(empty)}</p></section>`;
   const pick = pickOfTheDay(list);
   const podcasts = list.filter((v) => v.url !== undefined).length;
   const counts = podcasts ? `${plural(list.length - podcasts, "video")} and ${plural(podcasts, "podcast episode")}` : plural(list.length, "video");
@@ -180,10 +180,12 @@ function render() {
       <label><span class="sr-only">Go to a day</span><input type="date" value="${day}" min="${first}" max="${now}" /></label>
     </span>
     ${next}`;
-  el("dek").textContent = `Every video and podcast episode of the day, midnight to midnight (${zone}), by format and set.`;
+  const generated = new Date(data.archive.generated);
+  const updated = `${localDay(generated) === now ? "today" : fullDay.format(utc(localDay(generated))).replace(/ \d{4}$/, "")} at ${time.format(generated)}`;
+  el("dek").textContent = `Every video and podcast episode of the day, midnight to midnight (${zone}), by format and set. Updated ${updated}.`;
 
   // One day per page: the day before is a click (or the left arrow key) away.
-  el("main").innerHTML = daySection(day, list, day === now ? `Today, ${label}` : label);
+  el("main").innerHTML = daySection(day, list, day === now ? `Today, ${label}` : label, day === now ? `No video yet today (last update ${updated}).` : undefined);
 }
 
 function go(day: string) {
