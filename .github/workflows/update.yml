@@ -1,8 +1,8 @@
 name: Update and publish
 
 # Every hour: read the creators' feeds, commit the new videos, publish the page on GitHub Pages.
-# Once a day (06:23 UTC) the sets and cards are read from Scryfall as well. A push to main only
-# publishes.
+# Once a day (06:23 UTC) the sets and cards are read from Scryfall as well. A push to main reads
+# the feeds too, so that the time of the last update shown on the page is always true.
 on:
   schedule:
     - cron: "23 6 * * *"
@@ -32,7 +32,6 @@ jobs:
       - run: npm ci
 
       - name: Read the creators' feeds
-        if: github.event_name != 'push'
         env:
           # Optional: with a YouTube Data API key, durations come with each new video.
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
@@ -45,7 +44,6 @@ jobs:
           npm run views
 
       - name: Commit the new videos
-        if: github.event_name != 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
