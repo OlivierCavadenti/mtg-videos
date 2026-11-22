@@ -1,12 +1,10 @@
 name: Update and publish
 
-# Every hour: read the creators' feeds, commit the new videos, publish the page on GitHub Pages.
-# Once a day (06:23 UTC) the sets and cards are read from Scryfall as well. A push to main reads
-# the feeds too, so that the time of the last update shown on the page is always true.
+# A push to main publishes the page on GitHub Pages. The hourly update runs on a server of the
+# owner's (GitHub drops most hourly scheduled runs): it reads the feeds and pushes the new videos,
+# which publishes them. Run by hand, this workflow does the same update itself, sets and cards
+# from Scryfall included.
 on:
-  schedule:
-    - cron: "23 6 * * *"
-    - cron: "23 0-5,7-23 * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -32,18 +30,18 @@ jobs:
       - run: npm ci
 
       - name: Read the creators' feeds
+        if: github.event_name == 'workflow_dispatch'
         env:
           # Optional: with a YouTube Data API key, durations come with each new video.
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event.schedule }}" = "23 6 * * *" ]; then
-            npm run sets || echo "Scryfall unavailable: the sets stay as they were"
-            npm run cards || echo "Scryfall unavailable: the cards stay as they were"
-          fi
+          npm run sets || echo "Scryfall unavailable: the sets stay as they were"
+          npm run cards || echo "Scryfall unavailable: the cards stay as they were"
           npm run sync
           npm run views
 
       - name: Commit the new videos
+        if: github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

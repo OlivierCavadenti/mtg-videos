@@ -1,11 +1,11 @@
 const USER_AGENT = "mtg-videos/1.0 (+https://github.com/OlivierCavadenti/mtg-videos)";
 
 export class HttpError extends Error {
-  constructor(
-    readonly status: number,
-    url: string,
-  ) {
+  readonly status: number;
+
+  constructor(status: number, url: string) {
     super(`HTTP ${status} for ${url.replace(/key=[^&]+/, "key=…")}`);
+    this.status = status;
   }
 }
 

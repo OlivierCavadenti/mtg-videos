@@ -29,8 +29,11 @@ No server and no database. Everything is static files in this repository:
 | `scripts/` | The data scripts (Node 22, TypeScript run with `tsx`) |
 | `src/` | The page (Vite, plain TypeScript, no framework) |
 
-A GitHub Action (`.github/workflows/update.yml`) runs every hour. It reads the feeds, commits the new
-videos and publishes the page on GitHub Pages; once a day it also reads the sets and cards from Scryfall.
+Every hour, `scripts/update.sh` reads the feeds, commits the new videos and pushes them; once a day it
+also reads the sets and cards from Scryfall. It runs from cron on a server of the owner's, because
+GitHub drops most hourly scheduled workflow runs. It needs git with push access (a deploy key) and
+Node 22.18 or later, which runs the TypeScript as is. A push to main publishes the page on GitHub
+Pages (`.github/workflows/update.yml`); run by hand, that workflow does the whole update itself.
 
 ## Commands
 
@@ -95,7 +98,7 @@ here.
 run read every older video). Reading them once keeps the data files from changing every day. A
 video's score is its views divided by the median of its creator's other videos read at the same
 stage: the 30 read the day after release before it, or, for older videos, those published within
-two months around it. The hourly Action reads them with the `YOUTUBE_API_KEY` secret.
+two months around it. The hourly update reads them with a `YOUTUBE_API_KEY`.
 
 ## Adding a creator
 
