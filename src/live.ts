@@ -122,8 +122,7 @@ function watch(key: string | undefined) {
   } else {
     panel.hidden = false;
     panel.innerHTML = `<div class="player-head" id="player-head"></div>
-      <div class="player-video"><iframe src="${esc(embeds(key).video)}" title="Stream" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
-      ${withChat ? chatFrame(key) : ""}`;
+      <div class="player-body"><div class="player-video"><iframe src="${esc(embeds(key).video)}" title="Stream" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>${withChat ? chatFrame(key) : ""}</div>`;
     renderHead();
   }
   for (const a of document.querySelectorAll<HTMLElement>(".mtile[data-watch]")) a.classList.toggle("playing", a.dataset.watch === key);
@@ -227,6 +226,27 @@ function countHidden(streams: LiveStream[]): number {
   return [...sizes.values()].reduce((n, size) => n + Math.max(0, size - SHOWN), 0);
 }
 
+/** A format with this many streams or fewer shares a block with the other small ones. */
+const SMALL = 2;
+
+/** The blocks in order: the big formats, then the small ones together, then those naming none. */
+function arrange(blocks: Block[], stamp: string): string {
+  const small = blocks.filter((b) => b.format !== "other" && b.streams.length <= SMALL);
+  if (small.length < 2) return blocks.map((b) => block(b, stamp)).join("");
+  const big = blocks.filter((b) => b.format !== "other" && !small.includes(b));
+  const other = blocks.filter((b) => b.format === "other");
+  const streams = small.flatMap((b) => b.streams);
+  const viewers = small.reduce((n, b) => n + b.viewers, 0);
+  const groups = small
+    .map((b) => `<div class="cgroup" style="${columns(b.streams.length)}"><p class="chead"><strong>${esc(FORMAT_NAMES[b.format])}</strong> <span class="n">${b.streams.length}</span></p>${mosaic(b.streams, true, stamp)}</div>`)
+    .join("");
+  const shared = `<div class="cluster" data-format="more">
+    <div class="mlabel"><span class="fmt">${big.length ? "More formats" : "Formats"}</span><span class="n">${plural(streams.length, "stream")}, ${compact.format(viewers)} watching</span></div>
+    <div class="cluster-body">${groups}</div>
+  </div>`;
+  return [...big.map((b) => block(b, stamp)), shared, ...other.map((b) => block(b, stamp))].join("");
+}
+
 // ------------------------------------------------------------------ page
 
 function render() {
@@ -254,7 +274,7 @@ function render() {
   const without = missing.length ? ` ${missing.join(" and ")} could not be read this time.` : "";
   el("summary").textContent = `${plural(shown.length, "stream")} live, ${number.format(audience)} watching. Updated ${age < 1 ? "just now" : `${plural(age, "minute")} ago`}.${late}${without}`;
 
-  el("main").innerHTML = shown.length ? blocksOf(shown).map((b) => block(b, stamp)).join("") : `<p class="status">No Magic stream live right now${f.lang || f.on ? " with these filters" : ""}.</p>`;
+  el("main").innerHTML = shown.length ? arrange(blocksOf(shown), stamp) : `<p class="status">No Magic stream live right now${f.lang || f.on ? " with these filters" : ""}.</p>`;
   renderHead();
 }
 
@@ -301,7 +321,7 @@ el("player").addEventListener("click", (e) => {
     withChat = !withChat;
     const panel = el("player");
     panel.querySelector(".player-chat")?.remove();
-    if (withChat) panel.insertAdjacentHTML("beforeend", chatFrame(watching));
+    if (withChat) panel.querySelector(".player-body")?.insertAdjacentHTML("beforeend", chatFrame(watching));
     renderHead();
   }
 });

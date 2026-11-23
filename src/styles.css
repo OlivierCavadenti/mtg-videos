@@ -506,6 +506,15 @@ button {
   display: none;
 }
 
+/* The player and its chat: one above the other, the chat down to the foot of the screen. */
+.player-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .player-head {
   padding-top: var(--space-1);
   border-top: 3px double var(--ink);
@@ -609,6 +618,53 @@ button {
   z-index: 1;
   border: 3px solid var(--live);
   pointer-events: none;
+}
+
+/* A list beside the player: each format's name above its tiles. */
+.live-layout.watching .cluster {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.live-layout.watching .mlabel {
+  flex-flow: row wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.live-layout.watching .mlabel .fmt {
+  font-size: 20px;
+}
+
+/* Watching on a wide screen: the whole width. The list in a column of two tiles, the player as
+   large as the rest allows (no taller than the screen), its chat beside it as on Twitch. */
+@media (min-width: 1400px) {
+  .live-layout.watching {
+    /* Two tiles of 222 pixels (--tile at this width), their gap, the block's padding and rule. */
+    --list: 466px;
+    max-width: none;
+    grid-template-columns: var(--list) minmax(0, 1fr);
+  }
+  .live-layout.watching .player {
+    height: auto;
+  }
+  /* The masthead and the bar above take the whole width too, so that the edges stay in line. */
+  body:has(.live-layout.watching) :is(.masthead, .livebar, .colophon) {
+    max-width: none;
+  }
+  .player-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: stretch;
+  }
+  .player-body:not(:has(.player-chat)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .player-video {
+    max-height: calc(100vh - 150px);
+  }
+  .player-chat {
+    min-height: 0;
+  }
 }
 
 /* Narrow: the player above the list, held at the top while the list scrolls; no chat. */
