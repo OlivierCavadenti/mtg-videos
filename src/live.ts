@@ -95,13 +95,15 @@ function renderHead() {
     ${s ? `<p class="player-title">${esc(s.title)}</p>` : ""}
     <p class="player-actions">
       <a href="${esc(url)}" target="_blank" rel="noopener">Open on ${PLATFORM_NAMES[platform]}</a>
+      <button type="button" data-full>Full screen</button>
       <button type="button" data-chat>${withChat ? "Hide the chat" : "Show the chat"}</button>
       <button type="button" data-close>Close</button>
     </p>`;
 }
 
 function chatFrame(key: string): string {
-  return `<div class="player-chat"><iframe src="${esc(embeds(key).chat)}" title="Chat"></iframe></div>`;
+  const [platform] = key.split(":") as [LivePlatform];
+  return `<div class="player-chat"><p class="player-chat-head">Live chat <span class="n">on ${PLATFORM_NAMES[platform]}</span></p><iframe src="${esc(embeds(key).chat)}" title="Chat"></iframe></div>`;
 }
 
 /** Opens a stream in the panel (or closes it, with no key), and says so in the URL. */
@@ -294,6 +296,7 @@ el("main").addEventListener("click", (e) => {
 el("player").addEventListener("click", (e) => {
   const target = e.target as HTMLElement;
   if (target.closest("[data-close]")) watch(undefined);
+  else if (target.closest("[data-full]")) void el("player").querySelector<HTMLElement>(".player-video")?.requestFullscreen();
   else if (target.closest("[data-chat]") && watching) {
     withChat = !withChat;
     const panel = el("player");

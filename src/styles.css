@@ -468,12 +468,16 @@ button {
   font-style: italic;
 }
 
-/* A stream opened on the page: the list on the left, its player and chat on the right. Twitch
-   wants its player 400 by 300 pixels at least. */
+/* A stream opened on the page: the list on the left, its player and chat on the right, both in
+   the masthead's measure. Twitch wants its player 400 by 300 pixels at least. */
 .live-layout {
-  --panel: clamp(540px, 36vw, 780px);
+  --panel: clamp(520px, 40%, 760px);
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding-inline: var(--space-5);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -481,9 +485,10 @@ button {
   grid-template-columns: minmax(0, 1fr) var(--panel);
 }
 
-/* Centred by its auto margins, the list would shrink to its tiles in the grid. */
+/* The list keeps the layout's margins; centred by its own, it would shrink to its tiles. */
 .live-layout .day-main {
   width: 100%;
+  padding-inline: 0;
 }
 
 .player {
@@ -492,7 +497,8 @@ button {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--rule);
+  gap: var(--space-2);
+  padding: var(--space-4) 0 var(--space-3);
   background: var(--paper);
 }
 
@@ -501,7 +507,8 @@ button {
 }
 
 .player-head {
-  padding: var(--space-2) var(--space-3);
+  padding-top: var(--space-1);
+  border-top: 3px double var(--ink);
 }
 
 .player-who {
@@ -546,23 +553,52 @@ button {
 }
 
 .player-video {
+  flex: none;
   aspect-ratio: 16 / 9;
   min-height: 300px;
   background: var(--ink);
 }
 
-.player-video iframe,
-.player-chat iframe {
+.player-video iframe {
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
 }
 
+.player-video:fullscreen {
+  aspect-ratio: auto;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* The chat in a frame of its own, under a small heading, down to the foot of the screen. */
 .player-chat {
   flex: 1;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+}
+
+.player-chat-head {
+  margin: 0;
+  padding: 3px var(--space-2);
+  border-bottom: 1px solid var(--rule);
+  font: 600 14px/1.4 var(--narrow);
+}
+
+.player-chat-head .n {
+  font-weight: 400;
+}
+
+.player-chat iframe {
+  flex: 1;
+  width: 100%;
   min-height: 0;
-  border-top: 1px solid var(--rule);
+  border: 0;
+  background: var(--paper);
 }
 
 /* The stream playing in the panel, framed over its thumbnail. */
@@ -584,7 +620,7 @@ button {
     order: -1;
     z-index: 5;
     height: auto;
-    border-left: 0;
+    padding-block: var(--space-2);
     border-bottom: 1px solid var(--rule);
   }
   .player-chat,
