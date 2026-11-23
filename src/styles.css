@@ -468,6 +468,131 @@ button {
   font-style: italic;
 }
 
+/* A stream opened on the page: the list on the left, its player and chat on the right. Twitch
+   wants its player 400 by 300 pixels at least. */
+.live-layout {
+  --panel: clamp(540px, 36vw, 780px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.live-layout.watching {
+  grid-template-columns: minmax(0, 1fr) var(--panel);
+}
+
+/* Centred by its auto margins, the list would shrink to its tiles in the grid. */
+.live-layout .day-main {
+  width: 100%;
+}
+
+.player {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--rule);
+  background: var(--paper);
+}
+
+.player[hidden] {
+  display: none;
+}
+
+.player-head {
+  padding: var(--space-2) var(--space-3);
+}
+
+.player-who {
+  margin: 0;
+  font: 500 15px/1.35 var(--narrow);
+  color: var(--ink-soft);
+}
+
+.player-who strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.player-title {
+  margin: 2px 0 0;
+  font: italic 14px/1.35 var(--serif);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.player-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 4px 0 0;
+  font: 14px var(--narrow);
+}
+
+.player-actions a,
+.player-actions button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.player-video {
+  aspect-ratio: 16 / 9;
+  min-height: 300px;
+  background: var(--ink);
+}
+
+.player-video iframe,
+.player-chat iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.player-chat {
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid var(--rule);
+}
+
+/* The stream playing in the panel, framed over its thumbnail. */
+.mtile.playing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 3px solid var(--live);
+  pointer-events: none;
+}
+
+/* Narrow: the player above the list, held at the top while the list scrolls; no chat. */
+@media (max-width: 1100px) {
+  .live-layout.watching {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .player {
+    order: -1;
+    z-index: 5;
+    height: auto;
+    border-left: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .player-chat,
+  .player-actions [data-chat] {
+    display: none;
+  }
+}
+
 .chead .set-icon {
   width: 14px;
   height: 14px;

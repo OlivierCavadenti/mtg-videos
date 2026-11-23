@@ -19,14 +19,17 @@
   <body class="day-page">
     <header class="masthead">
       <h1><a href="../">MTG Videos</a></h1>
-      <p class="dek">The Magic streams live now on Twitch and YouTube, by format from their titles.</p>
+      <p class="dek">The Magic streams live now on Twitch and YouTube, by format from their titles. Click one to watch it here, with its chat.</p>
       <nav class="sections" aria-label="Pages"><a href="../">Archive</a> <a href="../day/">Videos of the day</a> <span aria-current="page">Live streams</span></nav>
     </header>
     <div class="livebar">
       <p class="live-summary" id="summary" aria-live="polite">Loading the streams live now…</p>
       <nav class="refine" id="filters" aria-label="Filters"></nav>
     </div>
-    <main id="main" class="day-main" tabindex="-1"></main>
+    <div class="live-layout" id="layout">
+      <main id="main" class="day-main" tabindex="-1"></main>
+      <aside id="player" class="player" aria-label="Stream" hidden></aside>
+    </div>
     <footer class="colophon">
       <p>
         Streams belong to their streamers; this page only links to them. The list and the thumbnails come from Twitch and YouTube, read every five

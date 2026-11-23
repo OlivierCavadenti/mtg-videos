@@ -105,7 +105,8 @@ two months around it. The hourly update reads them with a `YOUTUBE_API_KEY`.
 The Live streams page (`live/`) shows the Magic streams live now on Twitch and YouTube, by format.
 Every five minutes, `scripts/live.sh` runs `scripts/live.ts` and pushes its output to the `live`
 branch, a single commit replaced each time; the page reads it from `raw.githubusercontent.com`,
-so the list can be up to ten minutes old.
+so the list can be up to ten minutes old. A click on a stream plays it in a panel on the right, with
+its chat (the Twitch and YouTube embedded players); with a modifier key it opens on its platform.
 
 - **Twitch**: every stream live in the Magic: The Gathering category, through the Helix API with
   an app token (`TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, from a confidential application).

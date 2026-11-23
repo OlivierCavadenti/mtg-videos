@@ -52,6 +52,81 @@ const visible = (f: Filters) => (s: LiveStream) => (!f.lang || langOf(s) === f.l
 
 // ------------------------------------------------------------------ tiles and blocks
 
+// ------------------------------------------------------------------ watching a stream on the page
+
+/** The stream opened in the panel: "twitch:<login>" or "youtube:<video id>", also in the URL. */
+let watching: string | undefined;
+const WATCH = /^(twitch|youtube):[\w-]{2,64}$/;
+const narrow = matchMedia("(max-width: 1100px)");
+/** The chat beside the player, on wide screens only. */
+let withChat = !narrow.matches;
+
+const twitchLogin = (s: LiveStream) => new URL(s.url).pathname.split("/")[1] ?? "";
+const watchKey = (s: LiveStream) => (s.platform === "twitch" ? `twitch:${twitchLogin(s)}` : `youtube:${s.id}`);
+const streamOf = (key: string) => list?.streams.find((s) => watchKey(s) === key);
+
+function readWatch(): string | undefined {
+  const w = new URLSearchParams(location.search).get("watch");
+  return w && WATCH.test(w) ? w : undefined;
+}
+
+/** The player and chat addresses. Twitch wants the page's domain as "parent". */
+function embeds(key: string): { video: string; chat: string } {
+  const [platform, id] = key.split(":") as [LivePlatform, string];
+  const host = location.hostname;
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const code = encodeURIComponent(id);
+  return platform === "twitch"
+    ? { video: `https://player.twitch.tv/?channel=${code}&parent=${host}&autoplay=true`, chat: `https://www.twitch.tv/embed/${code}/chat?parent=${host}${dark ? "&darkpopout" : ""}` }
+    : { video: `https://www.youtube.com/embed/${code}?autoplay=1`, chat: `https://www.youtube.com/live_chat?v=${code}&embed_domain=${host}${dark ? "&dark_theme=1" : ""}` };
+}
+
+/** The panel's heading: who, the title, and the links. Redrawn on refresh; the player is not. */
+function renderHead() {
+  const head = document.getElementById("player-head");
+  if (!head || !watching) return;
+  const s = streamOf(watching);
+  const [platform] = watching.split(":") as [LivePlatform];
+  const who = s
+    ? `<strong>${esc(s.name)}</strong> · ${PLATFORM_NAMES[s.platform]} · ${number.format(s.viewers)} watching · for ${uptime(s.started)}`
+    : `<strong>${esc(watching.split(":")[1]!)}</strong> · ${PLATFORM_NAMES[platform]}${list ? " · no longer in the list of streams live" : ""}`;
+  const url = s?.url ?? (platform === "twitch" ? `https://www.twitch.tv/${watching.split(":")[1]}` : `https://www.youtube.com/watch?v=${watching.split(":")[1]}`);
+  head.innerHTML = `<p class="player-who">${who}</p>
+    ${s ? `<p class="player-title">${esc(s.title)}</p>` : ""}
+    <p class="player-actions">
+      <a href="${esc(url)}" target="_blank" rel="noopener">Open on ${PLATFORM_NAMES[platform]}</a>
+      <button type="button" data-chat>${withChat ? "Hide the chat" : "Show the chat"}</button>
+      <button type="button" data-close>Close</button>
+    </p>`;
+}
+
+function chatFrame(key: string): string {
+  return `<div class="player-chat"><iframe src="${esc(embeds(key).chat)}" title="Chat"></iframe></div>`;
+}
+
+/** Opens a stream in the panel (or closes it, with no key), and says so in the URL. */
+function watch(key: string | undefined) {
+  watching = key;
+  const panel = el("player");
+  el("layout").classList.toggle("watching", Boolean(key));
+  const p = new URLSearchParams(location.search);
+  if (key) p.set("watch", key);
+  else p.delete("watch");
+  const q = p.toString();
+  history.replaceState(null, "", q ? `?${q}` : location.pathname);
+  if (!key) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+  } else {
+    panel.hidden = false;
+    panel.innerHTML = `<div class="player-head" id="player-head"></div>
+      <div class="player-video"><iframe src="${esc(embeds(key).video)}" title="Stream" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+      ${withChat ? chatFrame(key) : ""}`;
+    renderHead();
+  }
+  for (const a of document.querySelectorAll<HTMLElement>(".mtile[data-watch]")) a.classList.toggle("playing", a.dataset.watch === key);
+}
+
 function uptime(started: string): string {
   const minutes = Math.max(0, Math.round((Date.now() - Date.parse(started)) / 60_000));
   return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}`;
@@ -66,7 +141,8 @@ function tile(s: LiveStream, stamp: string): string {
     s.formats[0] === "cube" ? `${CUBE}Cube` : s.set && !s.setGuessed ? esc(s.set) : "",
     s.usual ? `<span class="usual" title="The title names no format: this is the one the streamer's titles usually name">usual format</span>` : "",
   ].filter(Boolean);
-  return `<a class="mtile" href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(s.title)}">
+  const key = watchKey(s);
+  return `<a class="mtile${key === watching ? " playing" : ""}" href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(s.title)}" data-watch="${esc(key)}">
     <img src="${esc(s.thumb)}?t=${stamp}" alt="" loading="lazy" decoding="async" />
     <span class="len viewers" title="${number.format(s.viewers)} watching">${compact.format(s.viewers)}</span>
     <span class="over"><span class="t">${esc(s.title)}</span><span class="meta">${meta.join(" · ")}</span></span>
@@ -170,13 +246,14 @@ function render() {
 
   const generated = new Date(list.generated);
   const age = Math.round((Date.now() - generated.getTime()) / 60_000);
-  const watching = shown.reduce((n, s) => n + s.viewers, 0);
+  const audience = shown.reduce((n, s) => n + s.viewers, 0);
   const late = age > 30 ? ` The list is late: it was made at ${time.format(generated)}.` : "";
   const missing = (["twitch", "youtube"] as const).filter((p) => !list!.platforms.includes(p)).map((p) => PLATFORM_NAMES[p]);
   const without = missing.length ? ` ${missing.join(" and ")} could not be read this time.` : "";
-  el("summary").textContent = `${plural(shown.length, "stream")} live, ${number.format(watching)} watching. Updated ${age < 1 ? "just now" : `${plural(age, "minute")} ago`}.${late}${without}`;
+  el("summary").textContent = `${plural(shown.length, "stream")} live, ${number.format(audience)} watching. Updated ${age < 1 ? "just now" : `${plural(age, "minute")} ago`}.${late}${without}`;
 
   el("main").innerHTML = shown.length ? blocksOf(shown).map((b) => block(b, stamp)).join("") : `<p class="status">No Magic stream live right now${f.lang || f.on ? " with these filters" : ""}.</p>`;
+  renderHead();
 }
 
 async function load() {
@@ -200,14 +277,39 @@ el("filters").addEventListener("change", (e) => {
   render();
 });
 el("main").addEventListener("click", (e) => {
-  const button = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-open]");
-  if (!button) return;
-  opened.add(button.dataset.open!);
-  render();
+  const target = e.target as HTMLElement;
+  const button = target.closest<HTMLButtonElement>("button[data-open]");
+  if (button) {
+    opened.add(button.dataset.open!);
+    render();
+    return;
+  }
+  // A stream opens in the panel; with a modifier key or the middle button, in a new tab as before.
+  const a = target.closest<HTMLAnchorElement>("a.mtile[data-watch]");
+  if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  watch(a.dataset.watch);
+  if (narrow.matches) window.scrollTo({ top: 0, behavior: "smooth" });
+});
+el("player").addEventListener("click", (e) => {
+  const target = e.target as HTMLElement;
+  if (target.closest("[data-close]")) watch(undefined);
+  else if (target.closest("[data-chat]") && watching) {
+    withChat = !withChat;
+    const panel = el("player");
+    panel.querySelector(".player-chat")?.remove();
+    if (withChat) panel.insertAdjacentHTML("beforeend", chatFrame(watching));
+    renderHead();
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && watching && !(e.target instanceof HTMLSelectElement)) watch(undefined);
 });
 // Fresh every five minutes, and on coming back to the tab.
 setInterval(() => void load(), REFRESH);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && Date.now() - loadedAt > 2 * 60_000) void load();
 });
+const asked = readWatch();
+if (asked) watch(asked);
 void load();
