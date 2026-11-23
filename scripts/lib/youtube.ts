@@ -151,7 +151,9 @@ export async function liveDetails(ids: string[], key: string): Promise<LiveDetai
       const premiere = Boolean(parseIsoDuration(v.contentDetails.duration));
       const broadcast = v.snippet.liveBroadcastContent;
       const status = premiere || !v.liveStreamingDetails ? "none" : broadcast === "live" ? "live" : broadcast === "upcoming" ? "upcoming" : "none";
-      const lang = (v.snippet.defaultAudioLanguage ?? v.snippet.defaultLanguage)?.slice(0, 2).toLowerCase();
+      // "und" (undetermined), "zxx" (no language) and "mul" (several) say nothing.
+      const given = (v.snippet.defaultAudioLanguage ?? v.snippet.defaultLanguage)?.toLowerCase();
+      const lang = given && !/^(und|zxx|mul)/.test(given) ? given.slice(0, 2) : undefined;
       out.push({
         id: v.id,
         status,
