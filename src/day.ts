@@ -31,6 +31,8 @@ function pickOfTheDay(list: Item[]): Item | undefined {
 
 const time = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" });
 const MIC = `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M12 3a4 4 0 0 0-4 4v5a4 4 0 0 0 8 0V7a4 4 0 0 0-4-4Zm-7 9a1 1 0 1 1 2 0 5 5 0 0 0 10 0 1 1 0 1 1 2 0 7 7 0 0 1-6 6.93V21h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-2.07A7 7 0 0 1 5 12Z"/></svg>`;
+/** A cube drawn in outline: marks Cube videos and the Cube group. */
+const CUBE = `<svg class="cube-icon" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" d="M8 1.5 14 4.8v6.4L8 14.5 2 11.2V4.8L8 1.5ZM2 4.8 8 8l6-3.2M8 8v6.5"/></svg>`;
 
 /** One video as a mosaic tile: the thumbnail, its title and who made it over the image. */
 function tile(v: Item, pick = false): string {
@@ -43,7 +45,7 @@ function tile(v: Item, pick = false): string {
   const meta = [
     `${esc(creator.name)}${creator.language === "fr" ? ' <span class="lang">FR</span>' : ""}`,
     time.format(new Date(v.at)),
-    set ? esc(set.code) : "",
+    v.format === "cube" ? `${CUBE}Cube${set ? ` ${esc(set.code)}` : ""}` : set ? esc(set.code) : "",
     ...(v.archetypes ?? []).slice(0, 1).map(esc),
   ].filter(Boolean);
   const why = pick
@@ -55,16 +57,39 @@ function tile(v: Item, pick = false): string {
   </a>`;
 }
 
-/** A format's title tile: its name, how many videos, and its sets for Limited and Cube. */
-function labelTile(g: FormatGroup): string {
-  const sets = (g.bySet ?? [])
+/** A format's block on the page. Limited holds the Cube videos too, apart from the set ones. */
+type Block = FormatGroup & { cube: Item[] };
+const size = (b: Block) => b.items.length + b.cube.length;
+const holds = (b: Block, v: Item | undefined) => Boolean(v && (b.items.includes(v) || b.cube.includes(v)));
+const pickFirst = (pick: Item | undefined) => (a: Item, b: Item) => Number(b === pick) - Number(a === pick);
+
+function blocksOf(list: Item[]): Block[] {
+  const blocks: Block[] = [];
+  let limited: Block | undefined;
+  for (const g of groupByFormat(list)) {
+    if (g.format === "cube") {
+      if (limited) limited.cube = g.items;
+      else blocks.push((limited = { format: "limited", items: [], cube: g.items }));
+      continue;
+    }
+    const b: Block = { ...g, cube: [] };
+    if (g.format === "limited") limited = b;
+    blocks.push(b);
+  }
+  return blocks;
+}
+
+/** A format's title tile: its name, how many videos, and its sets for Limited, Cube included. */
+function labelTile(b: Block): string {
+  const sets = (b.bySet ?? [])
     .map(({ code, items }) => {
       const set = code ? data.setByCode.get(code) : undefined;
       return set ? `<a href="${ARCHIVE}?set=${esc(set.code.toLowerCase())}"><img src="${esc(set.icon)}" alt="" width="14" height="14" />${esc(set.name)}</a> ${items.length}` : "";
     })
     .filter(Boolean)
+    .concat(b.cube.length ? [`<a href="${ARCHIVE}?format=cube">${CUBE}Cube</a> ${b.cube.length}`] : [])
     .join(" · ");
-  return `<div class="mlabel"><span class="fmt">${esc(FORMAT_NAMES[g.format])}</span><span class="n">${plural(g.items.length, "video")}</span>${sets ? `<span class="sets">${sets}</span>` : ""}</div>`;
+  return `<div class="mlabel"><span class="fmt">${esc(FORMAT_NAMES[b.format])}</span><span class="n">${plural(size(b), "video")}</span>${sets ? `<span class="sets">${sets}</span>` : ""}</div>`;
 }
 
 const COMBINATIONS: Record<string, string> = {
@@ -88,17 +113,20 @@ const bar = (colors: string) =>
   `linear-gradient(90deg, ${[...colors].map((c, i) => `var(--mana-${c.toLowerCase()}) ${Math.round((i * 100) / colors.length)}% ${Math.round(((i + 1) * 100) / colors.length)}%`).join(", ")})`;
 
 /** A framed group of tiles under a heading; tinted with its colors when it has some. */
-function group(head: string, l: Item[], pick: Item | undefined, colors = ""): string {
+function group(head: string, l: Item[], pick: Item | undefined, colors = "", kind = ""): string {
   const style = `--cols:${columns(l, pick)}${colors ? `;--tint:${tint(colors)};--bar:${bar(colors)}` : ""}`;
-  return `<div class="cgroup${colors ? " colored" : ""}" style="${style}"><p class="chead">${head}</p><div class="mosaic">${l.map((v) => tile(v, v === pick)).join("")}</div></div>`;
+  const classes = ["cgroup", colors ? "colored" : "", kind].filter(Boolean).join(" ");
+  return `<div class="${classes}" style="${style}"><p class="chead">${head}</p>${mosaic(l, pick)}</div>`;
 }
 
+const mosaic = (l: Item[], pick: Item | undefined) => `<div class="mosaic">${l.map((v) => tile(v, v === pick)).join("")}</div>`;
+
 /**
- * A format's videos by colors played: one group per color combination (most videos first), then the
- * videos whose colors are not known. Without two videos with known colors, no grouping.
+ * Videos by colors played: one group per color combination (most videos first), then the videos
+ * whose colors are not known. Without two videos with known colors, no grouping (undefined).
  */
-function byColors(list: Item[], pick: Item | undefined): string {
-  if (list.filter((v) => v.colors).length < 2) return `<div class="mosaic">${list.map((v) => tile(v, v === pick)).join("")}</div>`;
+function colorGroups(list: Item[], pick: Item | undefined): string | undefined {
+  if (list.filter((v) => v.colors).length < 2) return undefined;
   const groups = new Map<string, Item[]>();
   for (const v of list) {
     const k = v.colors ?? "";
@@ -122,9 +150,22 @@ function byColors(list: Item[], pick: Item | undefined): string {
     .join("");
 }
 
-/** A format's videos in their order: sets in order (Limited, Cube), the video of the day first. */
-const inOrder = (g: FormatGroup, pick: Item | undefined) =>
-  (g.bySet ? g.bySet.flatMap((s) => s.items) : g.items).sort((a, b) => Number(b === pick) - Number(a === pick));
+/** A format's videos in their order: sets in order (Limited), the video of the day first. */
+const inOrder = (g: FormatGroup, pick: Item | undefined) => (g.bySet ? g.bySet.flatMap((s) => s.items) : g.items).sort(pickFirst(pick));
+
+/**
+ * A block's videos: by colors played, and in Limited the Cube videos in a group of their own, first
+ * when the video of the day is one of them.
+ */
+function blockBody(b: Block, pick: Item | undefined): string {
+  const sets = inOrder(b, pick);
+  const cube = [...b.cube].sort(pickFirst(pick));
+  if (!cube.length) return colorGroups(sets, pick) ?? mosaic(sets, pick);
+  const cubePart = group(`${CUBE}<strong>Cube</strong> <span class="n">${cube.length}</span>`, cube, pick, "", "cube");
+  if (!sets.length) return cubePart;
+  const setPart = colorGroups(sets, pick) ?? group(`<strong>${setNames(b) || "Draft and sealed"}</strong> <span class="n">${sets.length}</span>`, sets, pick);
+  return pick && cube.includes(pick) ? cubePart + setPart : setPart + cubePart;
+}
 
 /** The set names of a format's videos, for Limited and Cube. */
 const setNames = (g: FormatGroup) =>
@@ -142,19 +183,19 @@ function daySection(day: string, list: Item[], heading: string, empty = "No vide
   // One framed block per format: its title on the left, its videos on the right, by colors played.
   // The video of the day takes a double tile in its format's block, which comes first. Formats with
   // one or two videos share a last block, one group each.
-  const groups = groupByFormat(list).sort((a, b) => Number(Boolean(pick && b.items.includes(pick))) - Number(Boolean(pick && a.items.includes(pick))));
-  const isSmall = (g: FormatGroup) => g.items.length <= SMALL && !(pick && g.items.includes(pick));
-  const small = groups.filter(isSmall);
+  const blocks = blocksOf(list).sort((a, b) => Number(holds(b, pick)) - Number(holds(a, pick)));
+  const isSmall = (b: Block) => size(b) <= SMALL && !holds(b, pick);
+  const small = blocks.filter(isSmall);
   const shared = small.length >= 2;
-  const big = groups.filter((g) => !shared || !isSmall(g));
-  const clusters = big.map((g) => `<div class="cluster" data-format="${g.format}">${labelTile(g)}<div class="cluster-body">${byColors(inOrder(g, pick), pick)}</div></div>`);
+  const big = blocks.filter((b) => !shared || !isSmall(b));
+  const clusters = big.map((b) => `<div class="cluster" data-format="${b.format}">${labelTile(b)}<div class="cluster-body">${blockBody(b, pick)}</div></div>`);
   if (shared) {
-    const videos = small.reduce((n, g) => n + g.items.length, 0);
+    const videos = small.reduce((n, b) => n + size(b), 0);
     const label = `<div class="mlabel"><span class="fmt">${big.length ? "More formats" : "Formats"}</span><span class="n">${plural(videos, "video")}</span></div>`;
     const body = small
-      .map((g) => {
-        const sets = setNames(g);
-        return group(`<strong>${esc(FORMAT_NAMES[g.format])}</strong> <span class="n">${g.items.length}</span>${sets ? ` <span class="archs">${sets}</span>` : ""}`, inOrder(g, pick), pick);
+      .map((b) => {
+        const sets = [setNames(b), b.cube.length ? `${CUBE}Cube` : ""].filter(Boolean).join(", ");
+        return group(`<strong>${esc(FORMAT_NAMES[b.format])}</strong> <span class="n">${size(b)}</span>${sets ? ` <span class="archs">${sets}</span>` : ""}`, [...inOrder(b, pick), ...b.cube], pick);
       })
       .join("");
     clusters.push(`<div class="cluster" data-format="more">${label}<div class="cluster-body">${body}</div></div>`);

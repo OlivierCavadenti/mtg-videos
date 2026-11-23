@@ -265,6 +265,21 @@ button {
   background: color-mix(in oklab, var(--tint) 20%, var(--paper));
 }
 
+/* Cube videos sit in the Limited block, in a group of their own under a darker rule. */
+.cgroup.cube {
+  border-top-color: var(--ink-soft);
+}
+
+.cube-icon {
+  flex: none;
+  vertical-align: -2px;
+  margin-right: 3px;
+}
+
+.mlabel .sets .cube-icon {
+  margin-right: 4px;
+}
+
 .chead {
   margin: 0 0 4px;
   white-space: nowrap;

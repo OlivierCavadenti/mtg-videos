@@ -17,6 +17,23 @@ test("formats come in the order the title names them", () => {
   assert.deepEqual(formatsIn("White Aggro | Explorer Bo3"), ["pioneer"]);
 });
 
+test("a cube is a cube, whatever format names it, and its draft is not Limited", () => {
+  assert.deepEqual(formatsIn("Rotisserie Drafting The Vintage Cube"), ["cube"]);
+  assert.deepEqual(formatsIn("Drafting Booster Tutor In The New Arena Powered Cube"), ["cube"]);
+  assert.deepEqual(formatsIn("Team Rotisserie Draft: LSV and Mack Battle"), ["cube"]);
+  assert.deepEqual(formatsIn("Pauper Cube draft, then Pauper league"), ["cube", "pauper"]);
+  assert.deepEqual(formatsIn("Is Mono-Black Busted In Final Fantasy Draft?"), ["limited"]);
+});
+
+test("a cube creator's video naming no format is a cube video, without a set", () => {
+  const lsv = creator({ name: "Luis Scott-Vargas", focus: ["limited"], format: "cube" });
+  const c = classify({ title: "Fastbond Redemption Arc In This Wild Lands Deck", published: "2026-11-22T17:00:00Z", platform: "youtube" }, lsv, sets);
+  assert.deepEqual([c.formats, c.kind, c.set], [["cube"], "draft", undefined]);
+  const d = classify({ title: "What If We Met In The Wide-Open GW Lane | Reality Fracture Draft", published: "2026-10-01T17:00:00Z", platform: "youtube" }, lsv, sets);
+  assert.deepEqual([d.formats, d.set], [["limited"], "FRA"]);
+  assert.ok(offTopic("Acting The Fool In The New Slay The Spire 2 Patch"));
+});
+
 test("a show's own name does not make it Limited", () => {
   const c = classify({ title: "Limited Resources 869 – Anatomy of a Great Cube Deck", published: "2026-09-10T00:00:00Z", platform: "podcast" }, creator({ name: "Limited Resources", platform: "podcast", focus: ["limited"] }), sets);
   assert.equal(c.formats[0], "cube");

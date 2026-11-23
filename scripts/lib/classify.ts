@@ -9,7 +9,8 @@ import { normalizeWords, type SetIndex } from "./sets.ts";
 
 // Matched against a title without accents ("limité" → "limite").
 const FORMAT_PATTERNS: Array<[Format, RegExp]> = [
-  ["cube", /\bcube\b/i],
+  // A rotisserie draft picks from a cube, all cards in view.
+  ["cube", /\bcube\b|\brotisserie\b|\broto draft\b/i],
   ["limited", /\bdrafts?\b|\bdrafting\b|\bsealed\b|\bscelle\b|\bprerelease\b|\blimited\b|\blimite\b|\b17 ?lands\b|\bp1p1\b|\bpick orders?\b|\bjump ?start\b/i],
   ["standard", /\bstandard\b/i],
   ["alchemy", /\balchemy\b/i],
@@ -26,25 +27,33 @@ const FORMAT_PATTERNS: Array<[Format, RegExp]> = [
   ["brawl", /\bbrawl\b/i],
 ];
 
+/** "Vintage Cube", "Pauper Cube", "Vintage Rotisserie": a cube, not the format that names it. */
+const CUBE_NAMES = /\b(?:vintage|legacy|modern|pre-?modern|pauper|pioneer|standard|historic|timeless|commander|arena|powered|peasant)\s+(cube|rotisserie)\b/gi;
+
+/** A cube draft is a cube video: drafting is what one does with a cube. */
+const cubeOverLimited = (formats: Format[]) => (formats.includes("cube") ? formats.filter((f) => f !== "limited") : formats);
+
 /** Formats a text names, in the order it names them. */
 export function formatsIn(text: string): Format[] {
+  const plain = text.replace(CUBE_NAMES, "$1");
   const found: Array<{ format: Format; at: number }> = [];
   for (const [format, pattern] of FORMAT_PATTERNS) {
-    const m = pattern.exec(text);
+    const m = pattern.exec(plain);
     if (m) found.push({ format, at: m.index });
   }
   found.sort((a, b) => a.at - b.at);
-  return found.map((f) => f.format);
+  return cubeOverLimited(found.map((f) => f.format));
 }
 
 /** The formats a transcript talks about: named five times or more, most named first. */
 function formatsInTranscript(transcript: string): Format[] {
+  const plain = transcript.replace(CUBE_NAMES, "$1");
   const counts: Array<{ format: Format; n: number }> = [];
   for (const [format, pattern] of FORMAT_PATTERNS) {
-    const n = transcript.match(new RegExp(pattern.source, "gi"))?.length ?? 0;
+    const n = plain.match(new RegExp(pattern.source, "gi"))?.length ?? 0;
     if (n >= 5) counts.push({ format, n });
   }
-  return counts.sort((a, b) => b.n - a.n).map((c) => c.format);
+  return cubeOverLimited(counts.sort((a, b) => b.n - a.n).map((c) => c.format));
 }
 
 // First match wins. Matched against a title without accents.
@@ -154,7 +163,7 @@ export function placeSet(title: string, at: Date, formats: Format[], kind: Kind,
 
 /** A title about another game, a giveaway or the channel itself rather than Magic. */
 export function offTopic(title: string): boolean {
-  return /\b(giveaway|new merch|merch drop|channel update|stream schedule|flesh and blood|lorcana|pokemon|one piece tcg|riftbound|star wars unlimited)\b/i.test(withoutCommands(withoutAccents(title)));
+  return /\b(giveaway|new merch|merch drop|channel update|stream schedule|flesh and blood|lorcana|pokemon|one piece tcg|riftbound|star wars unlimited)\b/i.test(withoutCommands(withoutAccents(title))) || (/\bslay (the spire|runs?)\b/i.test(title) && !formatsIn(title).length);
 }
 
 /** Words of a title, for comparing two copies of one episode. */
