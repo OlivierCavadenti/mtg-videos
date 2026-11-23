@@ -100,6 +100,25 @@ video's score is its views divided by the median of its creator's other videos r
 stage: the 30 read the day after release before it, or, for older videos, those published within
 two months around it. The hourly update reads them with a `YOUTUBE_API_KEY`.
 
+## Live streams
+
+The Live streams page (`live/`) shows the Magic streams live now on Twitch and YouTube, by format.
+Every five minutes, `scripts/live.sh` runs `scripts/live.ts` and pushes its output to the `live`
+branch, a single commit replaced each time; the page reads it from `raw.githubusercontent.com`,
+so the list can be up to ten minutes old.
+
+- **Twitch**: every stream live in the Magic: The Gathering category, through the Helix API with
+  an app token (`TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, from a confidential application).
+- **YouTube**: there is no affordable way to list every Magic live, so the channels are kept in a
+  database. Their feeds are read a third at a time, and each round for those seen live in the last
+  two days. A video found there is checked once through the API (1 unit per 50 videos). Every four
+  hours a search for Magic lives (100 units) brings in new channels. The archive's creators are in
+  from the start.
+- **Formats** come from the stream's title, with the same rules as the videos. When the title names
+  none, the stream takes the format its streamer's titles usually name: three streams at least,
+  and three in five of them. `streamers.json`, on the same branch, is that database: every
+  streamer seen live, with how many of their titles named each format.
+
 ## Adding a creator
 
 Add an entry to `config/creators.json`: a YouTube feed

@@ -212,3 +212,61 @@ export interface ArchiveVideo {
   /** Views read the day after release, compared with the creator's other videos read then. */
   dayAfter?: true;
 }
+
+// ------------------------------------------------------------------ live streams
+
+export type LivePlatform = "twitch" | "youtube";
+
+/** A Magic stream live when the list was made (live.json, on the "live" branch). */
+export interface LiveStream {
+  platform: LivePlatform;
+  /** Twitch stream id or YouTube video id. */
+  id: string;
+  /** The streamer's key in the database: Twitch user id or YouTube channel id. */
+  channel: string;
+  name: string;
+  title: string;
+  url: string;
+  thumb: string;
+  viewers: number;
+  started: string;
+  /** ISO 639-1 language, when the platform tells it. */
+  lang?: string;
+  /** Formats the title names, else the streamer's usual one (`usual`). */
+  formats: Format[];
+  usual?: true;
+  set?: string;
+  /** The set is the Limited format of the day, not named in the title. */
+  setGuessed?: true;
+}
+
+export interface LiveList {
+  generated: string;
+  /** The platforms read this time (one may be down, or without its keys). */
+  platforms: LivePlatform[];
+  /** Most watched first. */
+  streams: LiveStream[];
+  /** The sets the streams name. */
+  sets: Array<{ code: string; name: string; icon: string }>;
+}
+
+/** A streamer seen live in the Magic category on Twitch, or a YouTube channel watched for lives. */
+export interface Streamer {
+  platform: LivePlatform;
+  /** Twitch user id or YouTube channel id. */
+  channel: string;
+  /** Twitch login (the channel's address). */
+  login?: string;
+  name: string;
+  lang?: string;
+  /** How it came in: seen live on Twitch, a creator of the archive, a YouTube search for Magic lives. */
+  from: "twitch" | "creator" | "search";
+  first: string;
+  /** Last time seen live. */
+  last?: string;
+  /** Streams seen, and how many of their titles named each format. */
+  streams: number;
+  formats: Partial<Record<Format, number>>;
+  /** The last stream counted, so that a stream counts once. */
+  lastStream?: string;
+}

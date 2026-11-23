@@ -85,7 +85,7 @@ const withoutAccents = (s: string) => s.normalize("NFKD").replace(/[̀-ͯ]/g, ""
 const withoutCommands = (s: string) => s.replace(/(^|\s)![a-z0-9_]+/gi, " ");
 
 /** A title without the show's own name ("Limited Resources 879 – …" is not Limited because of it). */
-function ownTitle(title: string, creator: Creator | undefined): string {
+function ownTitle(title: string, creator: Pick<Creator, "name"> | undefined): string {
   let t = withoutCommands(withoutAccents(title));
   if (creator) {
     const name = withoutAccents(creator.name)
@@ -95,6 +95,9 @@ function ownTitle(title: string, creator: Creator | undefined): string {
   }
   return t;
 }
+
+/** The formats a title names, once rid of accents, chat commands and the channel's own name. */
+export const titleFormats = (title: string, channelName?: string): Format[] => formatsIn(ownTitle(title, channelName ? { name: channelName } : undefined));
 
 function kindOf(title: string, format: Format | undefined, creator: Creator | undefined, platform: Video["platform"]): Kind {
   for (const [kind, pattern, applies] of KIND_PATTERNS) if (applies(format) && pattern.test(title)) return kind;

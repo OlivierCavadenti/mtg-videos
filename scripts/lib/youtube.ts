@@ -104,3 +104,65 @@ export async function channelEntries(feedUrl: string, key: string, since: Date, 
   }
   return [...byId.values()];
 }
+
+// ------------------------------------------------------------------ live streams
+
+export interface LiveSearchHit {
+  videoId: string;
+  channelId: string;
+  channelTitle: string;
+  title: string;
+}
+
+/** Videos live now that match a query (search.list: 100 units of the daily quota). */
+export async function searchLive(q: string, key: string, relevanceLanguage?: string): Promise<LiveSearchHit[]> {
+  const query = new URLSearchParams({ part: "snippet", eventType: "live", type: "video", maxResults: "50", q, key, ...(relevanceLanguage ? { relevanceLanguage } : {}) });
+  const data = await getJson<{ items: Array<{ id: { videoId: string }; snippet: { channelId: string; channelTitle: string; title: string } }> }>(`${API}/search?${query}`);
+  return data.items.map((i) => ({ videoId: i.id.videoId, channelId: i.snippet.channelId, channelTitle: normalizeSpace(i.snippet.channelTitle), title: normalizeSpace(i.snippet.title) }));
+}
+
+export interface LiveDetails {
+  id: string;
+  /** "live" now, "upcoming" or "none" (over, or never a live). A premiere is not a stream: "none". */
+  status: "live" | "upcoming" | "none";
+  channelId: string;
+  channelTitle: string;
+  title: string;
+  viewers?: number;
+  started?: string;
+  lang?: string;
+}
+
+/** Whether videos are live (videos.list: 1 unit per 50 videos); a deleted video is missing. */
+export async function liveDetails(ids: string[], key: string): Promise<LiveDetails[]> {
+  const out: LiveDetails[] = [];
+  for (let i = 0; i < ids.length; i += 50) {
+    const query = new URLSearchParams({ part: "snippet,liveStreamingDetails,contentDetails", id: ids.slice(i, i + 50).join(","), key });
+    const data = await getJson<{
+      items: Array<{
+        id: string;
+        snippet: { channelId: string; channelTitle: string; title: string; liveBroadcastContent: string; defaultAudioLanguage?: string; defaultLanguage?: string };
+        contentDetails: { duration?: string };
+        liveStreamingDetails?: { concurrentViewers?: string; actualStartTime?: string };
+      }>;
+    }>(`${API}/videos?${query}`);
+    for (const v of data.items) {
+      // A premiere plays a finished video: it has a length, a stream has none ("P0D").
+      const premiere = Boolean(parseIsoDuration(v.contentDetails.duration));
+      const broadcast = v.snippet.liveBroadcastContent;
+      const status = premiere || !v.liveStreamingDetails ? "none" : broadcast === "live" ? "live" : broadcast === "upcoming" ? "upcoming" : "none";
+      const lang = (v.snippet.defaultAudioLanguage ?? v.snippet.defaultLanguage)?.slice(0, 2).toLowerCase();
+      out.push({
+        id: v.id,
+        status,
+        channelId: v.snippet.channelId,
+        channelTitle: normalizeSpace(v.snippet.channelTitle),
+        title: normalizeSpace(v.snippet.title),
+        ...(v.liveStreamingDetails?.concurrentViewers ? { viewers: Number(v.liveStreamingDetails.concurrentViewers) } : {}),
+        ...(v.liveStreamingDetails?.actualStartTime ? { started: v.liveStreamingDetails.actualStartTime } : {}),
+        ...(lang ? { lang } : {}),
+      });
+    }
+  }
+  return out;
+}

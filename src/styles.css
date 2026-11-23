@@ -29,6 +29,8 @@
   --mana-b: #3d3833;
   --mana-r: #c4422f;
   --mana-g: #2e7a48;
+  /* The dot of a stream live now. */
+  --live: #d23b2a;
   color-scheme: light;
 }
 
@@ -46,6 +48,7 @@
     color-scheme: dark;
   }
   .symbol,
+  .set-icon,
   .timeline img,
   .subhead img {
     filter: invert(0.9);
@@ -424,6 +427,69 @@ button {
   height: 14px;
   vertical-align: -2px;
   margin-right: 3px;
+}
+
+/* ------------------------------------------------------------ live streams */
+
+.livebar {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-5) 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+}
+
+.live-summary {
+  margin: 0;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.livebar .refine {
+  padding-block: 0;
+}
+
+/* The viewers of a stream, after the dot that says it is live. */
+.viewers::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--live);
+  vertical-align: 1px;
+}
+
+.over .usual {
+  font-style: italic;
+}
+
+.chead .set-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  margin-right: 3px;
+}
+
+.more {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  font-style: italic;
+}
+
+.more button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
